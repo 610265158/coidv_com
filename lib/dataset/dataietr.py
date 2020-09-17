@@ -115,9 +115,9 @@ class DataIter():
 
         one_batch=next(self.ds)
 
-        data,label=one_batch[0],one_batch[1]
+        image,data,label=one_batch[0],one_batch[1],one_batch[2]
 
-        return data,label
+        return image,data,label
 
 
 
@@ -141,8 +141,11 @@ class AlaskaDataIter():
         self.SNR_THRS=1.
 
 
-        data,label=self.parse_file(data)
+        iid,data,label=self.parse_file(data)
 
+
+
+        self.iid=iid
         self.data=data
         self.label=label
         self.raw_data_set_size = self.data.shape[0]  ##decided by self.parse_file
@@ -181,13 +184,11 @@ class AlaskaDataIter():
         train_inputs = preprocess_inputs(train[train.signal_to_noise > self.SNR_THRS])
         train_labels = np.array(train[train.signal_to_noise > self.SNR_THRS][target_cols].values.tolist())
 
-
+        train_id=train[train.signal_to_noise > self.SNR_THRS]['id'].values.tolist()
 
         logger.info('contains %d samples'%(train_labels.shape[0]) )
 
-
-
-        return train_inputs,train_labels
+        return train_id,train_inputs,train_labels
 
     def onehot(self,lable,depth=1000):
         one_hot_label=np.zeros(shape=depth)
@@ -200,11 +201,17 @@ class AlaskaDataIter():
         """Data augmentation function."""
         ####customed here
 
+        iid=self.iid[id]
+
+        bpp_path=os.path.join('../stanford-covid-vaccine/bpps',iid+'.npy')
 
 
+
+        image=np.load(bpp_path)
+        image=np.expand_dims(image,axis=0)
         data=self.data[id]
         label=self.label[id]
 
         data=np.transpose(data,[1,0])
         label = np.transpose(label, [1,0])
-        return data,label
+        return image,data,label

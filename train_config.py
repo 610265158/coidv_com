@@ -22,7 +22,7 @@ config.TRAIN.epoch = 100
 config.TRAIN.init_lr=5.e-4
 
 config.TRAIN.weight_decay_factor = 1.e-2                                  ####l2
-config.TRAIN.vis=False                                                      #### if to check the training data
+config.TRAIN.vis=True                                                      #### if to check the training data
 
 
 config.TRAIN.vis_mixcut=False
@@ -39,6 +39,8 @@ config.MODEL.height =  224                                        # input size d
 config.MODEL.width  =  224
 
 config.MODEL.channel = 3
+config.MODEL.image_only=True
+config.MODEL.image=True
 
 config.DATA = edict()
 

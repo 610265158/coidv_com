@@ -42,21 +42,23 @@ def main():
             print('show it, here')
             for step in range(train_ds.size):
 
-                images, labels=train_ds()
+                images,data, labels=train_ds()
                 # images, mask, labels = cutmix_numpy(images, mask, labels, 0.5)
 
 
                 print(images.shape)
 
                 for i in range(images.shape[0]):
-                    example_image=np.array(images[i])
+                    example_image=np.array(images[i,0])
 
                     example_label=np.array(labels[i])
 
-                    break
 
 
-                break
+                    cv2.imshow('ss',example_image)
+                    cv2.waitKey(0)
+
+
 
         ### train
         loss=trainer.custom_loop()
