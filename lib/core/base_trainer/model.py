@@ -70,8 +70,6 @@ class Net(nn.Module):
 
 
         fm_used=fms[8]
-        print(fm_used.shape)
-
         decod1=self.decoder_1(fm_used)
         decod2 = self.decoder_2(decod1)
         decod3 = self.decoder_3(decod2)
