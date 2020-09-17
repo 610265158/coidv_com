@@ -21,7 +21,7 @@ from lib.core.base_trainer.model import Simple1dNet,GRU_model,Complexer
 from lib.core.base_trainer.metric import *
 import torch
 
-
+from lib.core.base_trainer.loss import MCRMSELoss
 from torchcontrib.optim import SWA
 
 
@@ -30,6 +30,8 @@ from torchcontrib.optim import SWA
 
 if cfg.TRAIN.mix_precision:
     from apex import amp
+
+
 
 class Train(object):
   """Train class.
@@ -91,8 +93,15 @@ class Train(object):
     # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,mode='max', patience=3,verbose=True)
     self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR( self.optimizer, self.epochs,eta_min=1.e-6)
 
-    self.criterion = torch.nn.MSELoss().to(self.device)
+    self.criterion = MCRMSELoss().to(self.device)
 
+  # def MCRMSE(self,target,inputs):
+  #     loss = 0
+  #     for jj in range(5):
+  #         loss += torch.sqrt(self.criterion(inputs[..., jj], target[..., jj]) / 5+1e-6)
+  #
+  #
+  #     return loss
 
   def custom_loop(self):
     """Custom training and testing loop.
@@ -138,18 +147,16 @@ class Train(object):
         batch_size = data.shape[0]
 
         output = self.model(images,data)
-
-        current_loss = self.criterion(output, target)
-
-        summary_loss.update(current_loss.detach().item(), batch_size)
+        loss=self.criterion(output,target)
+        summary_loss.update(loss.detach().item(), batch_size)
 
         self.optimizer.zero_grad()
 
         if cfg.TRAIN.mix_precision:
-            with amp.scale_loss(current_loss, self.optimizer) as scaled_loss:
+            with amp.scale_loss(loss, self.optimizer) as scaled_loss:
                 scaled_loss.backward()
         else:
-            current_loss.backward()
+            loss.backward()
 
         self.optimizer.step()
         if cfg.MODEL.ema:
@@ -198,8 +205,7 @@ class Train(object):
 
 
                 output = self.model(images,data)
-                loss = self.criterion(output, target)
-
+                loss=self.criterion(output,target)
                 summary_loss.update(loss.detach().item(), batch_size)
 
                 if step % cfg.TRAIN.log_interval == 0:
