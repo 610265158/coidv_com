@@ -15,7 +15,7 @@ from lib.helper.logger import logger
 
 from lib.core.model.ShuffleNet_Series.ShuffleNetV2.utils import accuracy, AvgrageMeter, CrossEntropyLabelSmooth, save_checkpoint, get_lastest_model, get_parameters
 from lib.core.model.loss.focal_loss import FocalLoss,FocalLoss4d
-from lib.core.base_trainer.model import Simple1dNet,GRU_model
+from lib.core.base_trainer.model import Simple1dNet,GRU_model,Complexer
 
 
 from lib.core.base_trainer.metric import *
@@ -47,7 +47,7 @@ class Train(object):
     self.device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 
 
-    self.model = GRU_model().to(self.device)
+    self.model = Complexer().to(self.device)
 
     self.load_weight()
 
@@ -131,14 +131,13 @@ class Train(object):
 
         start=time.time()
 
-        images, target = self.train_ds()
-
-        data = torch.from_numpy(images).to(self.device).float()
-        target = torch.from_numpy(target).to(self.device).float()
+        images, data, target = self.train_ds()
+        images = torch.from_numpy(images).to(self.device).float()
+        data = torch.from_numpy(data).to(self.device).float()
 
         batch_size = data.shape[0]
 
-        output = self.model(data)
+        output = self.model(images,data)
 
         current_loss = self.criterion(output, target)
 
@@ -189,13 +188,15 @@ class Train(object):
         t = time.time()
         with torch.no_grad():
             for step in range(self.val_ds.size):
-                images, target = self.val_ds()
-                data = torch.from_numpy(images).to(self.device).float()
-                target = torch.from_numpy(target).to(self.device).float()
+                images,data, target = self.val_ds()
+
+                images = torch.from_numpy(images).to(self.device).float()
+                data = torch.from_numpy(data).to(self.device).float()
+
                 batch_size = data.shape[0]
 
 
-                output = self.model(data)
+                output = self.model(images,data)
                 loss = self.criterion(output, target)
 
                 summary_loss.update(loss.detach().item(), batch_size)

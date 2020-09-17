@@ -5,7 +5,7 @@ import numpy as np
 from easydict import EasyDict as edict
 
 config = edict()
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 config.TRAIN = edict()
 #### below are params for dataiter
@@ -21,8 +21,8 @@ config.TRAIN.epoch = 100
 
 config.TRAIN.init_lr=5.e-4
 
-config.TRAIN.weight_decay_factor = 1.e-2                                  ####l2
-config.TRAIN.vis=True                                                      #### if to check the training data
+config.TRAIN.weight_decay_factor = 1.e-5                                  ####l2
+config.TRAIN.vis=False                                                      #### if to check the training data
 
 
 config.TRAIN.vis_mixcut=False
