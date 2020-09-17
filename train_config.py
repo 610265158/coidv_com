@@ -5,7 +5,7 @@ import numpy as np
 from easydict import EasyDict as edict
 
 config = edict()
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 config.TRAIN = edict()
 #### below are params for dataiter
@@ -14,10 +14,10 @@ config.TRAIN.prefetch_size = 15
 ############
 
 config.TRAIN.num_gpu = 1
-config.TRAIN.batch_size = 32
-config.TRAIN.log_interval = 10                  ##10 iters for a log msg
+config.TRAIN.batch_size = 64
+config.TRAIN.log_interval = 100                  ##10 iters for a log msg
 config.TRAIN.test_interval = 1
-config.TRAIN.epoch = 100
+config.TRAIN.epoch = 150
 
 config.TRAIN.init_lr=5.e-4
 
@@ -39,9 +39,9 @@ config.MODEL.height =  224                                        # input size d
 config.MODEL.width  =  224
 
 config.MODEL.channel = 3
-config.MODEL.image_and_data=True
-config.MODEL.image_only=True
-
+config.MODEL.image_and_data=False
+config.MODEL.image_only=False
+config.MODEL.pre_length=68         ##68:107, 91:130
 config.DATA = edict()
 
 config.DATA.root_path=''

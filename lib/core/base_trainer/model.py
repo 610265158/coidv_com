@@ -198,14 +198,13 @@ class LSTM_model(nn.Module):
         return out
 
 
-
-
-
 class Complexer(nn.Module):
-    def __init__(self, ):
+    def __init__(self,private=False ):
         super().__init__()
 
 
+
+        self.pre_length=cfg.MODEL.pre_length
 
         if cfg.MODEL.image_and_data:
 
@@ -219,7 +218,7 @@ class Complexer(nn.Module):
             self.fc = nn.Linear(256, 5, bias=True)
         else:
 
-            self.data_model = GRU_model()
+            self.data_model = GRU_model(pred_len=self.pre_length)
             self.fc=nn.Linear(256,5,bias=True)
 
 
@@ -241,8 +240,6 @@ class Complexer(nn.Module):
         else:
             data_fm=self.data_model(data)
             out=self.fc(data_fm)
-
-
 
         return out
 

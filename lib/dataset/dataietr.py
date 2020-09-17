@@ -42,8 +42,6 @@ class data_info(object):
         with open(self.ann_file, 'r') as f:
             image_label_list = f.readlines()
 
-
-
         for line in image_label_list:
             cur_data_info = line.rstrip().split('|')
             fname = cur_data_info[0]
@@ -197,21 +195,67 @@ class AlaskaDataIter():
             one_hot_label[lable]=1
         return one_hot_label
 
+    def get_one_sample(self,id,training):
+        iid = self.iid[id]
+
+        bpp_path = os.path.join('../stanford-covid-vaccine/bpps', iid + '.npy')
+
+        image = np.load(bpp_path)
+        image = np.expand_dims(image, axis=0)
+        data = self.data[id]
+        label = self.label[id]
+
+        data = np.transpose(data, [1, 0])  ##shape [n,107,3)
+        label = np.transpose(label, [1, 0])
+
+
+        return image, data, label
+
+
+    def pad_to_long(self,data,label,length=130,extra_length=23,training=True):
+
+        ##better simulate to private dataset
+
+
+        random_iid=random.randint(0,len(self.iid)-1)
+        random_image, random_data, random_label=self.get_one_sample(random_iid,training)
+
+        start=random.randint(0,68-extra_length)
+
+        end=start+extra_length
+        cropped_data=random_data[start:end,:]
+        cropped_label = random_label[start:end, :]
+
+        ####join
+        mid=0
+
+        left_data=data[0:mid,:]
+        right_data=data[mid:,:]
+        left_label = label[0:mid, :]
+        right_label = label[mid:, :]
+
+        data=np.concatenate([left_data,cropped_data,right_data])
+        label=np.concatenate([left_label,cropped_label,right_label])
+
+        return data,label
+
     def single_map_func(self, id, is_training):
         """Data augmentation function."""
         ####customed here
 
-        iid=self.iid[id]
+        image,data,label=self.get_one_sample(id,is_training)
 
-        bpp_path=os.path.join('../stanford-covid-vaccine/bpps',iid+'.npy')
+        if cfg.MODEL.pre_length==91:
+            data, label=self.pad_to_long(data,label)
 
 
 
-        image=np.load(bpp_path)
-        image=np.expand_dims(image,axis=0)
-        data=self.data[id]
-        label=self.label[id]
+        # if is_training:
+        #
+        #     if random.uniform(0,1)<0.5:
+        #
+        #
+        #         data[:cfg.MODEL.pre_length,:]=data[:cfg.MODEL.pre_length][::-1,:]
+        #         label[:cfg.MODEL.pre_length,:]=label[:cfg.MODEL.pre_length][::-1,:]
 
-        data=np.transpose(data,[1,0])
-        label = np.transpose(label, [1,0])
         return image,data,label
