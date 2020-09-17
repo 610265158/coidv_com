@@ -95,14 +95,6 @@ class Train(object):
 
     self.criterion = MCRMSELoss().to(self.device)
 
-  # def MCRMSE(self,target,inputs):
-  #     loss = 0
-  #     for jj in range(5):
-  #         loss += torch.sqrt(self.criterion(inputs[..., jj], target[..., jj]) / 5+1e-6)
-  #
-  #
-  #     return loss
-
   def custom_loop(self):
     """Custom training and testing loop.
     Args:
@@ -223,6 +215,10 @@ class Train(object):
 
     for epoch in range(self.epochs):
 
+
+
+
+      best_loss=10000.
       for param_group in self.optimizer.param_groups:
         lr=param_group['lr']
       logger.info('learning rate: [%f]' %(lr))
@@ -261,7 +257,8 @@ class Train(object):
       self.scheduler.step()
       # self.scheduler.step(final_scores.avg)
 
-
+      if summary_loss.avg<best_loss:
+          best_loss=summary_loss.avg
 
       #### save model
       if not os.access(cfg.MODEL.model_path, os.F_OK):
@@ -288,7 +285,7 @@ class Train(object):
           self.optimizer.swap_swa_sgd()
 
 
-    return summary_loss.avg
+    return best_loss
 
   def load_weight(self):
       if cfg.MODEL.pretrained_model is not None:
