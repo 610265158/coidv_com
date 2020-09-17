@@ -134,7 +134,7 @@ class Train(object):
         images, data, target = self.train_ds()
         images = torch.from_numpy(images).to(self.device).float()
         data = torch.from_numpy(data).to(self.device).float()
-
+        target = torch.from_numpy(target).to(self.device).float()
         batch_size = data.shape[0]
 
         output = self.model(images,data)
@@ -192,7 +192,8 @@ class Train(object):
 
                 images = torch.from_numpy(images).to(self.device).float()
                 data = torch.from_numpy(data).to(self.device).float()
-
+                target = torch.from_numpy(target).to(self.device).float()
+                
                 batch_size = data.shape[0]
 
 
