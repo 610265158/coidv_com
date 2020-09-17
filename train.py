@@ -21,6 +21,9 @@ def main():
 
     data = pd.read_json('folds.json',lines=True)
 
+
+
+    losscolector=[]
     folds=[0,1,2,3,4]
 
     for fold in folds:
@@ -56,7 +59,15 @@ def main():
                 break
 
         ### train
-        trainer.custom_loop()
+        loss=trainer.custom_loop()
+        losscolector.append(loss)
+
+    avg_loss=0
+    for k,loss in enumerate(losscolector):
+        print('fold %d : loss %.5f'%(k,loss))
+        avg_loss+=loss
+    print('average loss is ',avg_loss/5.)
+
 
 if __name__=='__main__':
     main()

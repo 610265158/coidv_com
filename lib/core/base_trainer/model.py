@@ -71,6 +71,7 @@ class GRU_model(nn.Module):
             bidirectional=True,
             batch_first=True,
         )
+
         self.linear = nn.Linear(hidden_dim * 2, 5)
 
     def forward(self, seqs):
@@ -80,8 +81,8 @@ class GRU_model(nn.Module):
 
         reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
         output, hidden = self.gru(reshaped)
-        truncated = output[:, : self.pred_len, :]
-        out = self.linear(truncated)
+        out = self.linear(output)
+        out= out[:, : self.pred_len, :]
         return out
 
 if __name__=='__main__':

@@ -280,7 +280,7 @@ class Train(object):
           self.optimizer.swap_swa_sgd()
 
 
-
+    return summary_loss.avg
 
   def load_weight(self):
       if cfg.MODEL.pretrained_model is not None:
