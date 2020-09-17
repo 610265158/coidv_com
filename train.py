@@ -1,27 +1,36 @@
 
 from lib.core.base_trainer.net_work import Train
-from dataset import train_ds,val_ds
+
 from lib.core.model.ShuffleNet_Series.ShuffleNetV2.network import ShuffleNetV2
 
 from lib.core.model.semodel.SeResnet import se_resnet50
 import cv2
 import numpy as np
-
+import pandas as pd, numpy as np
 from train_config import config as cfg
 import setproctitle
 
-from lib.core.model.mix.mix import cutmix_numpy
+from lib.dataset.dataietr import DataIter
 setproctitle.setproctitle("alaska")
 
 
 def main():
 
 
-    folds=[0]
+
+
+    data = pd.read_json('folds.json',lines=True)
+
+    folds=[0,1,2,3,4]
 
     for fold in folds:
-        ###build dataset
 
+        ###build dataset
+        train_data=data[data['fold']!=fold]
+        val_data=data[data['fold']==fold]
+
+        train_ds=DataIter(train_data,shuffle=True,training_flag=True)
+        val_ds=DataIter(val_data,shuffle=False,training_flag=False)
         ###build trainer
         trainer = Train(train_ds=train_ds,val_ds=val_ds,fold=fold)
 

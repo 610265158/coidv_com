@@ -71,51 +71,24 @@ class GRU_model(nn.Module):
             bidirectional=True,
             batch_first=True,
         )
-        self.gru2 = nn.GRU(
-            input_size=hidden_dim,
-            hidden_size=hidden_dim,
-            num_layers=1,
-            dropout=dropout,
-            bidirectional=True,
-            batch_first=True,
-        )
-        self.gru3 = nn.GRU(
-            input_size=hidden_dim,
-            hidden_size=hidden_dim,
-            num_layers=1,
-            dropout=dropout,
-            bidirectional=True,
-            batch_first=True,
-        )
         self.linear = nn.Linear(hidden_dim * 2, 5)
 
     def forward(self, seqs):
 
         seqs=seqs.long()
-
-        seqs=torch.transpose(seqs,1,2)
         embed = self.embeding(seqs)
+
         reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
-
-        print(reshaped.shape)
         output, hidden = self.gru(reshaped)
-
-        print('xx')
-        print(hidden.shape)
-        print(output.shape)
-        output, hidden = self.gru2(hidden)
-        output, hidden = self.gru3(hidden)
         truncated = output[:, : self.pred_len, :]
         out = self.linear(truncated)
-        out = torch.transpose(out, 1, 2)
         return out
 
-
 if __name__=='__main__':
-    model=Simple1dNet()
+    model=GRU_model()
 
 
-    test_data=torch.zeros(size=[1,3,107])
+    test_data=torch.zeros(size=[12,107,3])
 
     res=model(test_data)
 

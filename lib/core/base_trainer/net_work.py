@@ -47,7 +47,7 @@ class Train(object):
     self.device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 
 
-    self.model = Simple1dNet().to(self.device)
+    self.model = GRU_model().to(self.device)
 
     self.load_weight()
 
