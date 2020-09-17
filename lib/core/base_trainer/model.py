@@ -207,32 +207,41 @@ class Complexer(nn.Module):
     def __init__(self, ):
         super().__init__()
 
-        self.data_model=GRU_model()
 
-        if cfg.MODEL.image or cfg.MODEL.image_only:
+
+        if cfg.MODEL.image_and_data:
+
+            self.data_model = GRU_model()
             self.image_model=Net()
+
             self.fc = nn.Linear(256+256, 5, bias=True)
+
+        elif cfg.MODEL.image_only:
+            self.image_model = Net()
+            self.fc = nn.Linear(256, 5, bias=True)
         else:
+
+            self.data_model = GRU_model()
             self.fc=nn.Linear(256,5,bias=True)
 
 
     def forward(self,images,data):
 
-        if cfg.MODEL.image_only:
-            image_fm = self.image_model(images)
-            out = self.fc(image_fm)
-            return out
-        data_fm=self.data_model(data)
-        print('data',data_fm.shape)
-        if cfg.MODEL.image:
+        if cfg.MODEL.image_and_data:
+            data_fm = self.data_model(data)
             image_fm = self.image_model(images)
 
-            print('image_fm', image_fm.shape)
-            fm=torch.cat([data_fm,image_fm],dim=2)
+
+            fm = torch.cat([data_fm, image_fm], dim=2)
 
             out = self.fc(fm)
 
+
+        elif cfg.MODEL.image_only:
+            image_fm = self.image_model(images)
+            out = self.fc(image_fm)
         else:
+            data_fm=self.data_model(data)
             out=self.fc(data_fm)
 
 

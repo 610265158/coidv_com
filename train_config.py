@@ -39,8 +39,8 @@ config.MODEL.height =  224                                        # input size d
 config.MODEL.width  =  224
 
 config.MODEL.channel = 3
+config.MODEL.image_and_data=True
 config.MODEL.image_only=True
-config.MODEL.image=True
 
 config.DATA = edict()
 
