@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import torch
-
+from tqdm import tqdm
 
 from train_config import config as cfg
 #####prepare data
@@ -40,29 +40,37 @@ private_inputs = preprocess_inputs(private_df)
 public_inputs=np.transpose(public_inputs,[0,2,1])
 private_inputs=np.transpose(private_inputs,[0,2,1])
 
-public_inputs=torch.from_numpy(public_inputs).to(device)
-private_inputs=torch.from_numpy(private_inputs).to(device)
 
 ##prepare model
-
-
-
 
 def predict_with_model(short_model,long_model,weights_list):
 
 
     cur_model_result=[]
     for weight in weights_list:
-
+        print('predict with %s' % (weight))
 
         short_model.load_state_dict(torch.load(weight, map_location=device))
         short_model.to(device)
         long_model.load_state_dict(torch.load(weight, map_location=device))
         long_model.to(device)
 
-        short_model_preds = short_model(None,public_inputs)
-        long_model_preds = long_model(None,private_inputs)
 
+
+        #### ingerence with batchsize 1 reduce mem problem
+        res = []
+        for k in tqdm(range(public_inputs.shape[0])):
+            cur_pub_input = torch.from_numpy(public_inputs[k:k+1, ...]).to(device)
+            cur_pub_res = short_model(None, cur_pub_input)
+            res.append(cur_pub_res.data.cpu().numpy())
+        short_model_preds =np.concatenate(res,axis=0)
+
+        res = []
+        for k in tqdm(range(private_inputs.shape[0])):
+            cur_pub_input = torch.from_numpy(private_inputs[k:k + 1, ...]).to(device)
+            cur_pub_res = long_model(None, cur_pub_input)
+            res.append(cur_pub_res.data.cpu().numpy())
+        long_model_preds = np.concatenate(res, axis=0)
         ###merge
         preds_gru=[]
         for df, preds in [(public_df, short_model_preds), (private_df, long_model_preds)]:
@@ -78,7 +86,7 @@ def predict_with_model(short_model,long_model,weights_list):
         cur_model_result.append(preds_gru_df)
 
 
-
+        print(preds_gru_df.shape)
 
     for i in range(1,len(weights_list)):
 
@@ -105,15 +113,15 @@ def predict_with_model(short_model,long_model,weights_list):
 
 from lib.core.base_trainer.model import Complexer
 
-short_model1=Complexer(pre_length=68)
-long_model1=Complexer(pre_length=91)
+short_model1=Complexer(pre_length=107)
+long_model1=Complexer(pre_length=130)
 
 
-weights_list=['fold0_epoch_138_val_loss0.250854.pth',
-              'fold1_epoch_142_val_loss0.260459.pth',
-              'fold2_epoch_143_val_loss0.255025.pth',
-              'fold3_epoch_135_val_loss0.254619.pth',
-              'fold4_epoch_144_val_loss0.255565.pth']
+weights_list=['./models/fold0_epoch_149_val_loss0.255521.pth',
+              './models/fold1_epoch_149_val_loss0.264397.pth',
+              './models/fold2_epoch_149_val_loss0.257018.pth',
+              './models/fold3_epoch_149_val_loss0.257898.pth',
+              './models/fold4_epoch_149_val_loss0.255823.pth']
 
 
 res1=predict_with_model(short_model1,long_model1,weights_list)
