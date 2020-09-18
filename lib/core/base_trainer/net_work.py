@@ -219,6 +219,7 @@ class Train(object):
 
 
       best_loss=10000.
+      best_model='xxx'
       for param_group in self.optimizer.param_groups:
         lr=param_group['lr']
       logger.info('learning rate: [%f]' %(lr))
@@ -257,8 +258,6 @@ class Train(object):
       self.scheduler.step()
       # self.scheduler.step(final_scores.avg)
 
-      if summary_loss.avg<best_loss:
-          best_loss=summary_loss.avg
 
       #### save model
       if not os.access(cfg.MODEL.model_path, os.F_OK):
@@ -270,6 +269,11 @@ class Train(object):
 
       logger.info('A model saved to %s' % current_model_saved_name)
       torch.save(self.model.state_dict(),current_model_saved_name)
+
+
+      if summary_loss.avg<best_loss:
+          best_loss=summary_loss.avg
+          best_model=current_model_saved_name
 
       ####switch back
       if cfg.MODEL.ema:
@@ -285,7 +289,7 @@ class Train(object):
           self.optimizer.swap_swa_sgd()
 
 
-    return best_loss
+    return best_loss,best_model
 
   def load_weight(self):
       if cfg.MODEL.pretrained_model is not None:

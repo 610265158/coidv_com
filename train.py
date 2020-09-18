@@ -61,13 +61,13 @@ def main():
 
 
         ### train
-        loss=trainer.custom_loop()
-        losscolector.append(loss)
+        loss,model=trainer.custom_loop()
+        losscolector.append([loss,model])
 
     avg_loss=0
-    for k,loss in enumerate(losscolector):
-        print('fold %d : loss %.5f'%(k,loss))
-        avg_loss+=loss
+    for k,loss_and_model in enumerate(losscolector):
+        print('fold %d : loss %.5f modelname: %s'%(k,loss_and_model[0],loss_and_model[1]))
+        avg_loss+=loss_and_model[0]
     print('average loss is ',avg_loss/5.)
 
 
