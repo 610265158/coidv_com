@@ -213,13 +213,14 @@ class Train(object):
 
         return summary_loss
 
+    best_loss = 10000.
+    best_model = 'xxx'
     for epoch in range(self.epochs):
 
 
 
 
-      best_loss=10000.
-      best_model='xxx'
+
       for param_group in self.optimizer.param_groups:
         lr=param_group['lr']
       logger.info('learning rate: [%f]' %(lr))
