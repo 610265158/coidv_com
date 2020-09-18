@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch.nn import Parameter
 
 from efficientnet_pytorch import EfficientNet
+from efficientnet_pytorch.model import MemoryEfficientSwish
 from train_config import config as cfg
 
 
@@ -39,15 +40,15 @@ class Net(nn.Module):
 
         self.decoder_1=nn.Sequential(nn.ConvTranspose2d(40,128,kernel_size=4,stride=2,padding=1),
                                       nn.BatchNorm2d(128),
-                                      nn.ReLU())
+                                      MemoryEfficientSwish())
 
         self.decoder_2 = nn.Sequential(nn.ConvTranspose2d(128, 256, kernel_size=4, stride=2, padding=1),
                                        nn.BatchNorm2d(256),
-                                       nn.ReLU())
+                                       MemoryEfficientSwish())
 
         self.decoder_3 = nn.Sequential(nn.ConvTranspose2d(256, 256, kernel_size=4, stride=2, padding=1),
                                        nn.BatchNorm2d(256),
-                                       nn.ReLU())
+                                       MemoryEfficientSwish())
 
 
 
@@ -144,12 +145,30 @@ class Simple1dNet(nn.Module):
 
 class GRU_model(nn.Module):
     def __init__(
-        self, seq_length=107, pred_len=68, dropout=0.5, embed_dim=100, hidden_dim=128, hidden_layers=3
+        self, seq_length=107, pred_len=68, dropout=0.5, embed_dim=128, hidden_dim=128, hidden_layers=3
     ):
         super(GRU_model, self).__init__()
         self.pre_length = pred_len
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
+
+        self.conv1 = nn.Sequential( nn.Conv1d(in_channels=14, kernel_size=5, out_channels=embed_dim * 3,
+                                              stride=1,
+                                              padding=2),
+                                    nn.BatchNorm1d(embed_dim * 3,momentum=0.01),
+                                    MemoryEfficientSwish(),
+                                    nn.Conv1d(in_channels=embed_dim * 3, kernel_size=5, out_channels=embed_dim * 3,
+                                              stride=1,
+                                              padding=2),
+                                    nn.BatchNorm1d(embed_dim * 3,momentum=0.01),
+                                    MemoryEfficientSwish(),
+                                    nn.Conv1d(in_channels=embed_dim * 3, kernel_size=5, out_channels=embed_dim * 3,
+                                              stride=1,
+                                              padding=2),
+                                    nn.BatchNorm1d(embed_dim * 3,momentum=0.01),
+                                    MemoryEfficientSwish(),
+                                      )
+
         self.gru = nn.GRU(
             input_size=embed_dim * 3,
             hidden_size=hidden_dim,
@@ -162,11 +181,15 @@ class GRU_model(nn.Module):
 
     def forward(self, seqs):
 
-        seqs=seqs.long()
-        embed = self.embeding(seqs)
 
-        reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
-        output, hidden = self.gru(reshaped)
+        seqs=seqs.permute(0,2,1)
+        conv1=self.conv1(seqs)
+        conv1 = conv1.permute(0, 2, 1)
+        # seqs=seqs.long()
+        # embed = self.embeding(seqs)
+
+        # reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
+        output, hidden = self.gru(conv1)
         output = output[:, :self.pre_length, ...]
 
         return output
@@ -228,7 +251,6 @@ class Complexer(nn.Module):
             data_fm = self.data_model(data)
             image_fm = self.image_model(images)
 
-
             fm = torch.cat([data_fm, image_fm], dim=2)
 
             out = self.fc(fm)
@@ -247,7 +269,7 @@ if __name__=='__main__':
     model=Complexer()
 
     image_data=torch.zeros(size=[12,1,107,107])
-    test_data=torch.zeros(size=[12,107,3])
+    test_data=torch.zeros(size=[12,107,11])
 
     res=model(image_data,test_data)
 

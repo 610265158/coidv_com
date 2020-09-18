@@ -170,12 +170,29 @@ class AlaskaDataIter():
 
         token2int = {x: i for i, x in enumerate('().ACGUBEHIMSX')}
 
+        rna_type={x: i for i, x in enumerate('ACGU')}
+        struct_type = {x: i for i, x in enumerate('().')}
+        loop_type= {x: i for i, x in enumerate('BEHIMSX')}
+
         def preprocess_inputs(df, cols=['sequence', 'structure', 'predicted_loop_type']):
-            encode = np.array(df[cols]
-                              .applymap(lambda seq: [token2int[x] for x in seq])
+
+            seq=np.array(df[['sequence']]
+                              .applymap(lambda seq: [rna_type[x] for x in seq])
                               .values
                               .tolist()
                               )
+            struc=np.array(df[['structure']]
+                              .applymap(lambda seq: [struct_type[x] for x in seq])
+                              .values
+                              .tolist()
+                              )
+            loop = np.array(df[['predicted_loop_type']]
+                             .applymap(lambda seq: [loop_type[x] for x in seq])
+                             .values
+                             .tolist()
+                             )
+
+            encode=np.concatenate([seq,struc,loop],axis=1)
 
             return encode
 
@@ -189,10 +206,11 @@ class AlaskaDataIter():
         return train_id,train_inputs,train_labels
 
     def onehot(self,lable,depth=1000):
-        one_hot_label=np.zeros(shape=depth)
+        length=lable.shape[0]
+        one_hot_label=np.zeros(shape=[length,depth])
 
-        if lable!=-1:
-            one_hot_label[lable]=1
+        for i in range(length):
+            one_hot_label[i][lable[i]]=1
         return one_hot_label
 
     def get_one_sample(self,id,training):
@@ -248,6 +266,16 @@ class AlaskaDataIter():
         if cfg.MODEL.pre_length==91:
             data, label=self.pad_to_long(data,label)
 
+
+        seq=data[:,0]
+        strc=data[:,1]
+        loop=data[:,2]
+
+        seq=self.onehot(seq,4)
+        strc = self.onehot(strc,3)
+        loop = self.onehot(loop,7)
+
+        data=np.concatenate([seq,strc,loop],axis=1)
 
 
         # if is_training:
