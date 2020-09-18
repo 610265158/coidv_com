@@ -199,12 +199,12 @@ class LSTM_model(nn.Module):
 
 
 class Complexer(nn.Module):
-    def __init__(self,private=False ):
+    def __init__(self,pre_length= cfg.MODEL.pre_length):
         super().__init__()
 
 
 
-        self.pre_length=cfg.MODEL.pre_length
+        self.pre_length=pre_length
 
         if cfg.MODEL.image_and_data:
 
