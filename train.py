@@ -13,7 +13,7 @@ import setproctitle
 from lib.dataset.dataietr import DataIter
 setproctitle.setproctitle("alaska")
 from lib.core.base_trainer.model import GRU_model,Complexer
-
+from functools import partial
 def main():
 
 
@@ -26,9 +26,8 @@ def main():
     losscolector=[]
     folds=[0,1,2,3,4]
 
-
-    models=[{'model_name':'gru','model':Complexer},
-
+    models=[{'model_name':'gru','model':Complexer,'mtype':0,"weights":[]},
+            {'model_name': 'lstm', 'model': Complexer, 'mtype': 1,"weights":[]}
             ]
     for model_type in models:
         for fold in folds:
@@ -42,7 +41,9 @@ def main():
             ###build trainer
 
 
-            trainer = Train(model=model_type['model'](),train_ds=train_ds,val_ds=val_ds,fold=fold)
+            trainer = Train(model=model_type['model'](mtype=model_type['mtype']),
+                            model_name=model_type['model_name'],
+                            train_ds=train_ds,val_ds=val_ds,fold=fold)
 
             print('it is here')
             if cfg.TRAIN.vis:
@@ -67,6 +68,7 @@ def main():
 
             ### train
             loss,model=trainer.custom_loop()
+            model['weights'].append(model)
             losscolector.append([loss,model])
 
         avg_loss=0
@@ -76,5 +78,6 @@ def main():
         print('average loss is ',avg_loss/len(folds))
 
 
+    print('final sub\n',models)
 if __name__=='__main__':
     main()

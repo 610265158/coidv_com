@@ -35,7 +35,9 @@ class Train(object):
   """Train class.
   """
 
-  def __init__(self,model,train_ds,val_ds,fold):
+  def __init__(self,model,model_name,train_ds,val_ds,fold):
+
+    self.model_name=model_name
     self.fold=fold
 
     self.init_lr=cfg.TRAIN.init_lr
