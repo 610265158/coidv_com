@@ -18,9 +18,9 @@ class MCRMSELoss(nn.Module):
         self.rmse = RMSELoss()
         self.num_scored = num_scored
 
-    def forward(self, pre, target):
+    def forward(self, pre, target,weights):
         score = 0
         for i in range(self.num_scored):
-            score += self.rmse(pre[:, :, i], target[:, :, i]) / self.num_scored
+            score += self.rmse(pre[:, :, i], target[:, :, i]) / self.num_scored*weights
 
         return score
