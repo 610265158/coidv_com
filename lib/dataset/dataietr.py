@@ -139,11 +139,11 @@ class AlaskaDataIter():
         self.SNR_THRS=1.
 
 
-        iid,data,label=self.parse_file(data)
+        raw_data,data,label=self.parse_file(data)
 
 
 
-        self.iid=iid
+        self.raw_data=raw_data
         self.data=data
         self.label=label
         self.raw_data_set_size = self.data.shape[0]  ##decided by self.parse_file
@@ -179,14 +179,20 @@ class AlaskaDataIter():
 
             return encode
 
-        train_inputs = preprocess_inputs(train[train.signal_to_noise > self.SNR_THRS])
-        train_labels = np.array(train[train.signal_to_noise > self.SNR_THRS][target_cols].values.tolist())
+        if not self.training_flag:
+            train_inputs = preprocess_inputs(train[train.signal_to_noise > self.SNR_THRS])
+            train_labels = np.array(train[train.signal_to_noise > self.SNR_THRS][target_cols].values.tolist())
 
-        train_id=train[train.signal_to_noise > self.SNR_THRS]['id'].values.tolist()
+            train=train[train.signal_to_noise > self.SNR_THRS]
+
+        else:
+            train_inputs = preprocess_inputs(train)
+            train_labels = np.array(train[target_cols].values.tolist())
+
 
         logger.info('contains %d samples'%(train_labels.shape[0]) )
 
-        return train_id,train_inputs,train_labels
+        return train,train_inputs,train_labels
 
     def onehot(self,lable,depth=1000):
         length=lable.shape[0]
@@ -197,20 +203,29 @@ class AlaskaDataIter():
         return one_hot_label
 
     def get_one_sample(self,id,training):
-        iid = self.iid[id]
+        iid = self.raw_data['id'][id]
+
+        snr=self.raw_data['signal_to_noise'][id]
+
+        if training:
+            weights=np.log(snr + 1.1) / 2
+        else:
+            weights = 1
 
         bpp_path = os.path.join('../stanford-covid-vaccine/bpps', iid + '.npy')
 
         image = np.load(bpp_path)
-        image = np.expand_dims(image, axis=0)
+
         data = self.data[id]
         label = self.label[id]
 
         data = np.transpose(data, [1, 0])  ##shape [n,107,3)
         label = np.transpose(label, [1, 0])
 
-
-        return image, data, label
+        bpp_max = np.expand_dims(np.max(image, axis=-1), -1)
+        bpp_sum=np.expand_dims(np.sum(image, axis=-1), -1)
+        data = np.concatenate([data, bpp_max,bpp_sum], axis=1)
+        return data, label,weights
 
 
     def pad_to_long(self,data,label,length=130,extra_length=23,training=True):
@@ -244,19 +259,10 @@ class AlaskaDataIter():
         """Data augmentation function."""
         ####customed here
 
-        image,data,label=self.get_one_sample(id,is_training)
+        data,label,weights=self.get_one_sample(id,is_training)
 
         if cfg.MODEL.pre_length==91:
             data, label=self.pad_to_long(data,label)
-
-
-
-
-        bpp_max=np.expand_dims(np.max(image[0],axis=-1),-1)
-        bpp_sum = np.expand_dims(np.sum(image[0], axis=-1), -1)
-
-        data=np.concatenate([data,bpp_max,bpp_sum],axis=1)
-
 
         # if is_training:
         #
@@ -266,4 +272,4 @@ class AlaskaDataIter():
         #         data[:cfg.MODEL.pre_length,:]=data[:cfg.MODEL.pre_length][::-1,:]
         #         label[:cfg.MODEL.pre_length,:]=label[:cfg.MODEL.pre_length][::-1,:]
 
-        return image,data,label
+        return data,label,weights
