@@ -30,7 +30,7 @@ def main():
     models=[{'model_name':'gru','model':Complexer()},
 
             ]
-    for model in models:
+    for model_type in models:
         for fold in folds:
 
             ###build dataset
@@ -42,7 +42,7 @@ def main():
             ###build trainer
 
 
-            trainer = Train(model=model['model'],train_ds=train_ds,val_ds=val_ds,fold=fold)
+            trainer = Train(model=model_type['model'],train_ds=train_ds,val_ds=val_ds,fold=fold)
 
             print('it is here')
             if cfg.TRAIN.vis:
@@ -71,9 +71,9 @@ def main():
 
         avg_loss=0
         for k,loss_and_model in enumerate(losscolector):
-            print('model_name %s. fold %d : loss %.5f modelname: %s'%( model['model_name'],k,loss_and_model[0],loss_and_model[1]))
+            print('model_name %s. fold %d : loss %.5f modelname: %s'%( model_type['model_name'],k,loss_and_model[0],loss_and_model[1]))
             avg_loss+=loss_and_model[0]
-        print('average loss is ',avg_loss/5.)
+        print('average loss is ',avg_loss/len(folds))
 
 
 if __name__=='__main__':
