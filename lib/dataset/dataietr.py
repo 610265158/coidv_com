@@ -158,6 +158,7 @@ class AlaskaDataIter():
             for k in idxs:
                 yield self.single_map_func(k, self.training_flag)
 
+
     def __len__(self):
         assert self.raw_data_set_size is not None
 
@@ -217,6 +218,8 @@ class AlaskaDataIter():
 
         image = np.load(bpp_path)
 
+
+
         data = self.data[index]
         label = self.label[index]
 
@@ -225,7 +228,14 @@ class AlaskaDataIter():
 
         bpp_max = np.expand_dims(np.max(image, axis=-1), -1)
         bpp_sum=np.expand_dims(np.sum(image, axis=-1), -1)
-        data = np.concatenate([data, bpp_max,bpp_sum], axis=1)
+
+        bpps_nb_mean = 0.077522  # mean of bpps_nb across all training data
+        bpps_nb_std = 0.08914  # std of bpps_nb across all training data
+        bpps_nb = (image > 0).sum(axis=0) / image.shape[0]
+        bpps_nb = (bpps_nb - bpps_nb_mean) / bpps_nb_std
+
+        bpps_nb=np.expand_dims(bpps_nb,axis=-1)
+        data = np.concatenate([data, bpp_max,bpp_sum,bpps_nb], axis=1)
         return data, label,weights
 
 

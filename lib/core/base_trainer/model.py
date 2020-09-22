@@ -158,7 +158,7 @@ class GRU_model(nn.Module):
         #                               )
 
         self.gru = nn.GRU(
-            input_size=embed_dim * 3+2,
+            input_size=embed_dim * 3+3,
             hidden_size=hidden_dim,
             num_layers=hidden_layers,
             dropout=dropout,
@@ -187,13 +187,12 @@ class GRU_model(nn.Module):
 
         seqs_extra_fea=seqs[:,:,3:]
 
-        print(seqs_extra_fea.shape)
         embed = self.embeding(seqs_base)
         embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
 
         feature=torch.cat([embed_reshaped,seqs_extra_fea],dim=-1)
 
-        print(feature.shape)
+
         output, hidden = self.gru(feature)
 
         output = output.permute(0, 2, 1)
@@ -204,33 +203,6 @@ class GRU_model(nn.Module):
         output = output[:, :self.pre_length, ...]
 
         return output
-
-class LSTM_model(nn.Module):
-    def __init__(
-        self, seq_len=107, pred_len=68, dropout=0.5, embed_dim=100, hidden_dim=128, hidden_layers=3
-    ):
-        super(LSTM_model, self).__init__()
-        self.pred_len = pred_len
-
-        self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
-        self.gru = nn.LSTM(
-            input_size=embed_dim * 3,
-            hidden_size=hidden_dim,
-            num_layers=hidden_layers,
-            dropout=dropout,
-            bidirectional=True,
-            batch_first=True,
-        )
-        self.linear = nn.Linear(hidden_dim * 2, 5)
-
-    def forward(self, seqs):
-        seqs = seqs.long()
-        embed = self.embeding(seqs)
-        reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
-        output, hidden = self.gru(reshaped)
-        truncated = output[:, : self.pred_len, :]
-        out = self.linear(truncated)
-        return out
 
 
 class Complexer(nn.Module):

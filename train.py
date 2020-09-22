@@ -12,7 +12,7 @@ import setproctitle
 
 from lib.dataset.dataietr import DataIter
 setproctitle.setproctitle("alaska")
-
+from lib.core.base_trainer.model import GRU_model,Complexer
 
 def main():
 
@@ -26,49 +26,54 @@ def main():
     losscolector=[]
     folds=[0,1,2,3,4]
 
-    for fold in folds:
 
-        ###build dataset
-        train_data=data[data['fold']!=fold]
-        val_data=data[data['fold']==fold]
+    models=[{'model_name':'gru','model':Complexer()},
 
-        train_ds=DataIter(train_data,shuffle=True,training_flag=True)
-        val_ds=DataIter(val_data,shuffle=False,training_flag=False)
-        ###build trainer
-        trainer = Train(train_ds=train_ds,val_ds=val_ds,fold=fold)
+            ]
+    for model in models:
+        for fold in folds:
 
-        print('it is here')
-        if cfg.TRAIN.vis:
-            print('show it, here')
-            for step in range(train_ds.size):
+            ###build dataset
+            train_data=data[data['fold']!=fold]
+            val_data=data[data['fold']==fold]
 
-                images,data, labels=train_ds()
-                # images, mask, labels = cutmix_numpy(images, mask, labels, 0.5)
+            train_ds=DataIter(train_data,shuffle=True,training_flag=True)
+            val_ds=DataIter(val_data,shuffle=False,training_flag=False)
+            ###build trainer
 
 
-                print(images.shape)
+            trainer = Train(model=model['model'],train_ds=train_ds,val_ds=val_ds,fold=fold)
 
-                for i in range(images.shape[0]):
-                    example_image=np.array(images[i,0])
+            print('it is here')
+            if cfg.TRAIN.vis:
+                print('show it, here')
+                for step in range(train_ds.size):
 
-                    example_label=np.array(labels[i])
-
-
-
-                    cv2.imshow('ss',example_image)
-                    cv2.waitKey(0)
+                    images,data, labels=train_ds()
+                    # images, mask, labels = cutmix_numpy(images, mask, labels, 0.5)
 
 
+                    print(images.shape)
 
-        ### train
-        loss,model=trainer.custom_loop()
-        losscolector.append([loss,model])
+                    for i in range(images.shape[0]):
+                        example_image=np.array(images[i,0])
 
-    avg_loss=0
-    for k,loss_and_model in enumerate(losscolector):
-        print('fold %d : loss %.5f modelname: %s'%(k,loss_and_model[0],loss_and_model[1]))
-        avg_loss+=loss_and_model[0]
-    print('average loss is ',avg_loss/5.)
+                        example_label=np.array(labels[i])
+
+
+
+                        cv2.imshow('ss',example_image)
+                        cv2.waitKey(0)
+
+            ### train
+            loss,model=trainer.custom_loop()
+            losscolector.append([loss,model])
+
+        avg_loss=0
+        for k,loss_and_model in enumerate(losscolector):
+            print('model_name %s. fold %d : loss %.5f modelname: %s'%( model['model_name'],k,loss_and_model[0],loss_and_model[1]))
+            avg_loss+=loss_and_model[0]
+        print('average loss is ',avg_loss/5.)
 
 
 if __name__=='__main__':

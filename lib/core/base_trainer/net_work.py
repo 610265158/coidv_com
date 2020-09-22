@@ -15,7 +15,7 @@ from lib.helper.logger import logger
 
 from lib.core.model.ShuffleNet_Series.ShuffleNetV2.utils import accuracy, AvgrageMeter, CrossEntropyLabelSmooth, save_checkpoint, get_lastest_model, get_parameters
 from lib.core.model.loss.focal_loss import FocalLoss,FocalLoss4d
-from lib.core.base_trainer.model import GRU_model,Complexer
+
 
 
 from lib.core.base_trainer.metric import *
@@ -35,7 +35,7 @@ class Train(object):
   """Train class.
   """
 
-  def __init__(self,train_ds,val_ds,fold):
+  def __init__(self,model,train_ds,val_ds,fold):
     self.fold=fold
 
     self.init_lr=cfg.TRAIN.init_lr
@@ -47,7 +47,7 @@ class Train(object):
     self.device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 
 
-    self.model = Complexer().to(self.device)
+    self.model = model.to(self.device)
 
     self.load_weight()
 
