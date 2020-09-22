@@ -23,13 +23,14 @@ def main():
 
 
 
-    losscolector=[]
+
     folds=[0,1,2,3,4]
 
     models=[{'model_name':'gru','model':Complexer,'mtype':0,"weights":[]},
             {'model_name': 'lstm', 'model': Complexer, 'mtype': 1,"weights":[]}
             ]
     for model_type in models:
+        losscolector = []
         for fold in folds:
 
             ###build dataset
