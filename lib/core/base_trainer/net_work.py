@@ -15,7 +15,7 @@ from lib.helper.logger import logger
 
 from lib.core.model.ShuffleNet_Series.ShuffleNetV2.utils import accuracy, AvgrageMeter, CrossEntropyLabelSmooth, save_checkpoint, get_lastest_model, get_parameters
 from lib.core.model.loss.focal_loss import FocalLoss,FocalLoss4d
-from lib.core.base_trainer.model import Simple1dNet,GRU_model,Complexer
+from lib.core.base_trainer.model import GRU_model,Complexer
 
 
 from lib.core.base_trainer.metric import *
@@ -23,8 +23,6 @@ import torch
 
 from lib.core.base_trainer.loss import MCRMSELoss
 from torchcontrib.optim import SWA
-
-
 
 
 
@@ -133,12 +131,12 @@ class Train(object):
         start=time.time()
 
         images, data, target = self.train_ds()
-        images = torch.from_numpy(images).to(self.device).float()
+
         data = torch.from_numpy(data).to(self.device).float()
         target = torch.from_numpy(target).to(self.device).float()
         batch_size = data.shape[0]
 
-        output = self.model(images,data)
+        output = self.model(data)
         loss=self.criterion(output,target)
         summary_loss.update(loss.detach().item(), batch_size)
 
@@ -189,14 +187,14 @@ class Train(object):
             for step in range(self.val_ds.size):
                 images,data, target = self.val_ds()
 
-                images = torch.from_numpy(images).to(self.device).float()
+
                 data = torch.from_numpy(data).to(self.device).float()
                 target = torch.from_numpy(target).to(self.device).float()
                 
                 batch_size = data.shape[0]
 
 
-                output = self.model(images,data)
+                output = self.model(data)
                 loss=self.criterion(output,target)
                 summary_loss.update(loss.detach().item(), batch_size)
 

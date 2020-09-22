@@ -170,29 +170,12 @@ class AlaskaDataIter():
 
         token2int = {x: i for i, x in enumerate('().ACGUBEHIMSX')}
 
-        rna_type={x: i for i, x in enumerate('ACGU')}
-        struct_type = {x: i for i, x in enumerate('().')}
-        loop_type= {x: i for i, x in enumerate('BEHIMSX')}
-
         def preprocess_inputs(df, cols=['sequence', 'structure', 'predicted_loop_type']):
-
-            seq=np.array(df[['sequence']]
-                              .applymap(lambda seq: [rna_type[x] for x in seq])
+            encode = np.array(df[cols]
+                              .applymap(lambda seq: [token2int[x] for x in seq])
                               .values
                               .tolist()
                               )
-            struc=np.array(df[['structure']]
-                              .applymap(lambda seq: [struct_type[x] for x in seq])
-                              .values
-                              .tolist()
-                              )
-            loop = np.array(df[['predicted_loop_type']]
-                             .applymap(lambda seq: [loop_type[x] for x in seq])
-                             .values
-                             .tolist()
-                             )
-
-            encode=np.concatenate([seq,struc,loop],axis=1)
 
             return encode
 
@@ -267,15 +250,12 @@ class AlaskaDataIter():
             data, label=self.pad_to_long(data,label)
 
 
-        seq=data[:,0]
-        strc=data[:,1]
-        loop=data[:,2]
 
-        seq=self.onehot(seq,4)
-        strc = self.onehot(strc,3)
-        loop = self.onehot(loop,7)
 
-        data=np.concatenate([seq,strc,loop],axis=1)
+        bpp_max=np.expand_dims(np.max(image[0],axis=-1),-1)
+        bpp_sum = np.expand_dims(np.sum(image[0], axis=-1), -1)
+
+        data=np.concatenate([data,bpp_max,bpp_sum],axis=1)
 
 
         # if is_training:
