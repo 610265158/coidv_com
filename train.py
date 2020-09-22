@@ -27,7 +27,7 @@ def main():
     folds=[0,1,2,3,4]
 
 
-    models=[{'model_name':'gru','model':Complexer()},
+    models=[{'model_name':'gru','model':Complexer},
 
             ]
     for model_type in models:
@@ -42,7 +42,7 @@ def main():
             ###build trainer
 
 
-            trainer = Train(model=model_type['model'],train_ds=train_ds,val_ds=val_ds,fold=fold)
+            trainer = Train(model=model_type['model'](),train_ds=train_ds,val_ds=val_ds,fold=fold)
 
             print('it is here')
             if cfg.TRAIN.vis:
