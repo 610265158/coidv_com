@@ -68,7 +68,7 @@ def main():
 
             ### train
             loss,model=trainer.custom_loop()
-            model['weights'].append(model)
+            model_type['weights'].append(model)
             losscolector.append([loss,model])
 
         avg_loss=0
@@ -78,6 +78,6 @@ def main():
         print('average loss is ',avg_loss/len(folds))
 
 
-    print('final sub\n',models)
+    print('final sub\n',model_type)
 if __name__=='__main__':
     main()
