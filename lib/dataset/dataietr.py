@@ -202,10 +202,11 @@ class AlaskaDataIter():
             one_hot_label[i][lable[i]]=1
         return one_hot_label
 
-    def get_one_sample(self,id,training):
-        iid = self.raw_data['id'][id]
+    def get_one_sample(self,index,training):
 
-        snr=self.raw_data['signal_to_noise'][id]
+        iid = self.raw_data.iloc[index]['id']
+
+        snr=self.raw_data.iloc[index]['signal_to_noise']
 
         if training:
             weights=np.log(snr + 1.1) / 2
@@ -216,8 +217,8 @@ class AlaskaDataIter():
 
         image = np.load(bpp_path)
 
-        data = self.data[id]
-        label = self.label[id]
+        data = self.data[index]
+        label = self.label[index]
 
         data = np.transpose(data, [1, 0])  ##shape [n,107,3)
         label = np.transpose(label, [1, 0])
@@ -255,11 +256,11 @@ class AlaskaDataIter():
 
         return data,label
 
-    def single_map_func(self, id, is_training):
+    def single_map_func(self, index, is_training):
         """Data augmentation function."""
         ####customed here
 
-        data,label,weights=self.get_one_sample(id,is_training)
+        data,label,weights=self.get_one_sample(index,is_training)
 
         if cfg.MODEL.pre_length==91:
             data, label=self.pad_to_long(data,label)
