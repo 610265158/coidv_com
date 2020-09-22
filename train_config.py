@@ -29,7 +29,7 @@ config.TRAIN.vis_mixcut=False
 if config.TRAIN.vis:
     config.TRAIN.mix_precision=False                                            ##use mix precision to speedup, tf1.14 at least
 else:
-    config.TRAIN.mix_precision = False
+    config.TRAIN.mix_precision = True
 
 config.TRAIN.opt='Adamw'
 
@@ -57,7 +57,7 @@ config.DATA.PIXEL_STD = np.array([0.238, 0.219, 0.232]).reshape(1,3,1,1)
 
 
 ####mainly hyper params
-config.TRAIN.warmup_step=-3000
+config.TRAIN.warmup_step=300
 config.TRAIN.opt='Adamw'
 config.TRAIN.SWA=-1    ### -1 use no swa   from which epoch start SWA
 config.MODEL.label_smooth=0.05

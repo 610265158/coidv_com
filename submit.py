@@ -149,20 +149,30 @@ from lib.core.base_trainer.model import Complexer
 models=[{'model_name':'gru',
          'model':Complexer,
          'mtype':0,
-         "weights":['./models/fold0_epoch_79_val_loss0.235689.pth',
-                  './models/fold1_epoch_87_val_loss0.244261.pth',
-                  './models/fold2_epoch_79_val_loss0.239587.pth',
-                  './models/fold3_epoch_83_val_loss0.238393.pth',
-                  './models/fold4_epoch_78_val_loss0.240684.pth']},
+         "weights":['./models/fold0_epoch_62_val_loss0.234776.pth',
+                  './models/fold1_epoch_84_val_loss0.237888.pth',
+                  './models/fold2_epoch_80_val_loss0.245633.pth',
+                  './models/fold3_epoch_86_val_loss0.236568.pth',
+                  './models/fold4_epoch_96_val_loss0.238488.pth',
+                    './models/fold5_epoch_84_val_loss0.234435.pth',
+                    './models/fold6_epoch_81_val_loss0.241561.pth',
+                    './models/fold7_epoch_72_val_loss0.225847.pth',
+                    './models/fold8_epoch_94_val_loss0.229949.pth',
+                    './models/fold9_epoch_91_val_loss0.239800.pth']},
 
         {'model_name': 'lstm',
          'model': Complexer,
          'mtype': 1,
-         "weights": ['./models/fold0_epoch_79_val_loss0.235689.pth',
-                     './models/fold1_epoch_87_val_loss0.244261.pth',
-                     './models/fold2_epoch_79_val_loss0.239587.pth',
-                     './models/fold3_epoch_83_val_loss0.238393.pth',
-                     './models/fold4_epoch_78_val_loss0.240684.pth']
+         "weights": ['./models/fold0_epoch_74_val_loss0.235044.pth',
+                     './models/fold1_epoch_84_val_loss0.237119.pth',
+                     './models/fold2_epoch_92_val_loss0.247474.pth',
+                     './models/fold3_epoch_86_val_loss0.239721.pth',
+                     './models/fold4_epoch_96_val_loss0.242856.pth',
+                     './models/fold5_epoch_84_val_loss0.237105.pth',
+                     './models/fold6_epoch_76_val_loss0.244211.pth',
+                     './models/fold7_epoch_72_val_loss0.227574.pth',
+                     './models/fold8_epoch_94_val_loss0.232012.pth',
+                     './models/fold9_epoch_71_val_loss0.241952.pth']
          }
             ]
 
@@ -170,8 +180,8 @@ for model in models:
 
     model_function=model['model']
 
-    short_model1=model_function(pre_length=107)
-    long_model1=model_function(pre_length=130)
+    short_model1=model_function(pre_length=107,mtype=model['mtype'])
+    long_model1=model_function(pre_length=130,mtype=model['mtype'])
 
 
     weights_list=model['weights']

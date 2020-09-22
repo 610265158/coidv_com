@@ -25,7 +25,7 @@ train = pd.read_json(ROOT+'/train.json', lines=True)
 
 train['fold']=-1
 
-kf=sklearn.model_selection.KFold(n_splits=5, shuffle=True, random_state=42)
+kf=sklearn.model_selection.KFold(n_splits=10, shuffle=True, random_state=42)
 
 for fold,(train_index , test_index) in enumerate(kf.split(train)):
     train['fold'][test_index]=fold

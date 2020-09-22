@@ -125,12 +125,12 @@ class Attention(nn.Module):
 
         self.conv=nn.Sequential(nn.Conv1d(in_channels=input_dim, kernel_size=1, out_channels=input_dim//refraction,
                                               stride=1),
-                                #nn.BatchNorm1d(input_dim//refraction,momentum=0.01),
+                                nn.BatchNorm1d(input_dim//refraction,momentum=0.01),
                                 nn.Conv1d(in_channels=input_dim//refraction, kernel_size=1, out_channels=input_dim,
                                           stride=1),
-                                #nn.BatchNorm1d(input_dim, momentum=0.01),
+                                nn.BatchNorm1d(input_dim, momentum=0.01),
                                 nn.Sigmoid()
-                                    )
+                                )
 
 
     def forward(self,x):
@@ -143,7 +143,7 @@ class Attention(nn.Module):
 
 class GRU_model(nn.Module):
     def __init__(
-        self, seq_length=107, pred_len=68, dropout=0.5, embed_dim=128, hidden_dim=128, hidden_layers=3
+        self, seq_length=107, pred_len=68, dropout=0.4, embed_dim=128, hidden_dim=256, hidden_layers=3
     ):
         super(GRU_model, self).__init__()
         self.pre_length = pred_len
@@ -167,12 +167,12 @@ class GRU_model(nn.Module):
         )
 
 
-        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
+        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=256,
                                               stride=1,
                                               padding=2,bias=False),
                                     nn.BatchNorm1d(256,momentum=0.01),
                                     MemoryEfficientSwish(),
-
+                                    Attention(256),
                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                 stride=1,
                                                 padding=2, bias=False),
@@ -206,7 +206,7 @@ class GRU_model(nn.Module):
 
 class LSTM_model(nn.Module):
     def __init__(
-        self, seq_length=107, pred_len=68, dropout=0.5, embed_dim=128, hidden_dim=128, hidden_layers=3
+        self, seq_length=107, pred_len=68, dropout=0.4, embed_dim=128, hidden_dim=256, hidden_layers=3
     ):
         super(LSTM_model, self).__init__()
         self.pre_length = pred_len
@@ -230,12 +230,12 @@ class LSTM_model(nn.Module):
         )
 
 
-        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
+        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=256,
                                               stride=1,
                                               padding=2,bias=False),
                                     nn.BatchNorm1d(256,momentum=0.01),
                                     MemoryEfficientSwish(),
-
+                                    Attention(256),
                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                 stride=1,
                                                 padding=2, bias=False),
@@ -278,6 +278,8 @@ class Complexer(nn.Module):
             self.data_model = GRU_model(pred_len=self.pre_length)
         elif mtype==1:
             self.data_model = LSTM_model(pred_len=self.pre_length)
+
+
         self.fc=nn.Linear(256,5,bias=True)
 
     def forward(self,data):

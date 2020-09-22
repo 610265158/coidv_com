@@ -21,14 +21,12 @@ def main():
 
     data = pd.read_json('folds.json',lines=True)
 
+    folds=[0,1,2,3,4,5,6,7,8,9]
 
-
-
-    folds=[0,1,2,3,4]
-
-    models=[{'model_name':'gru','model':Complexer,'mtype':0,"weights":[]},
-            {'model_name': 'lstm', 'model': Complexer, 'mtype': 1,"weights":[]}
+    models=[{'model_name':'gru','model':Complexer,'mtype':0,"weights":[],'avgloss':0},
+            {'model_name': 'lstm', 'model': Complexer, 'mtype': 1,"weights":[],'avgloss':0},
             ]
+
     for model_type in models:
         losscolector = []
         for fold in folds:
@@ -77,8 +75,8 @@ def main():
             print('model_name %s. fold %d : loss %.5f modelname: %s'%( model_type['model_name'],k,loss_and_model[0],loss_and_model[1]))
             avg_loss+=loss_and_model[0]
         print('average loss is ',avg_loss/len(folds))
+        model_type['avgloss']=avg_loss/len(folds)
 
-
-    print('final sub\n',model_type)
+    print('final sub\n',models)
 if __name__=='__main__':
     main()
