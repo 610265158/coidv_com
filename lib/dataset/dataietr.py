@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from lib.helper.logger import logger
 from tensorpack.dataflow import DataFromGenerator,BatchData, MultiProcessPrefetchData
 import time
-
+import pandas as pd
 
 from lib.dataset.augmentor.augmentation import Rotate_aug,\
                                                 Affine_aug,\
@@ -92,7 +92,7 @@ class DataIter():
 
         ds = DataFromGenerator(self.generator)
         ds = BatchData(ds, self.batch_size)
-        if not cfg.TRAIN.vis:
+        if not cfg.TRAIN.vis or self.training_flag:
             ds = MultiProcessPrefetchData(ds, self.prefetch_size, self.process_num)
         ds.reset_state()
         ds = ds.get_data()
@@ -139,13 +139,12 @@ class AlaskaDataIter():
         self.SNR_THRS=1.
 
 
-        raw_data,data,label=self.parse_file(data)
+        self.data=self.parse_file(data)
 
 
 
-        self.raw_data=raw_data
-        self.data=data
-        self.label=label
+
+
         self.raw_data_set_size = self.data.shape[0]  ##decided by self.parse_file
 
     def __call__(self, *args, **kwargs):
@@ -164,37 +163,16 @@ class AlaskaDataIter():
 
         return self.raw_data_set_size
 
-
     def parse_file(self,train):
         # target columns
-        target_cols = ['reactivity', 'deg_Mg_pH10', 'deg_pH10', 'deg_Mg_50C', 'deg_50C']
-
-        token2int = {x: i for i, x in enumerate('().ACGUBEHIMSX')}
-
-        def preprocess_inputs(df, cols=['sequence', 'structure', 'predicted_loop_type']):
-            encode = np.array(df[cols]
-                              .applymap(lambda seq: [token2int[x] for x in seq])
-                              .values
-                              .tolist()
-                              )
-
-            return encode
 
         if not self.training_flag:
-            train_inputs = preprocess_inputs(train[train.signal_to_noise > self.SNR_THRS])
-            train_labels = np.array(train[train.signal_to_noise > self.SNR_THRS][target_cols].values.tolist())
 
             train=train[train.signal_to_noise > self.SNR_THRS]
 
-        else:
-            train_inputs = preprocess_inputs(train)
-            train_labels = np.array(train[target_cols].values.tolist())
+        logger.info('contains %d samples'%(train.shape[0]) )
 
-
-        logger.info('contains %d samples'%(train_labels.shape[0]) )
-
-        return train,train_inputs,train_labels
-
+        return train
     def onehot(self,lable,depth=1000):
         length=lable.shape[0]
         one_hot_label=np.zeros(shape=[length,depth])
@@ -203,11 +181,39 @@ class AlaskaDataIter():
             one_hot_label[i][lable[i]]=1
         return one_hot_label
 
+
+
+    def encode(self,line):
+        target_cols = ['reactivity', 'deg_Mg_pH10', 'deg_pH10', 'deg_Mg_50C', 'deg_50C']
+
+        token2int = {x: i for i, x in enumerate('().ACGUBEHIMSX')}
+
+        def preprocess_inputs(df, cols=['sequence', 'structure', 'predicted_loop_type']):
+
+            
+            encode = np.array(df[cols]
+                              .applymap(lambda seq: [token2int[x] for x in seq])
+                              .values
+                              .tolist()
+                              )
+
+            return encode
+
+        train_data=preprocess_inputs(line)
+        train_label = np.array(line[target_cols].values.tolist())
+
+        return train_data[0],train_label[0]
+
     def get_one_sample(self,index,training):
 
-        iid = self.raw_data.iloc[index]['id']
+        cur_line = self.data.iloc[index:index+1]
+        data,label=self.encode(cur_line)
+        data = np.transpose(data, [1, 0])  ##shape [n,107,3)
+        label = np.transpose(label, [1, 0])
 
-        snr=self.raw_data.iloc[index]['signal_to_noise']
+        iid=cur_line['id'].values.tolist()[0]
+
+        snr=cur_line['signal_to_noise'].values.tolist()[0]
 
         if training:
             weights=np.log(snr + 1.1) / 2
@@ -219,12 +225,6 @@ class AlaskaDataIter():
         image = np.load(bpp_path)
 
 
-
-        data = self.data[index]
-        label = self.label[index]
-
-        data = np.transpose(data, [1, 0])  ##shape [n,107,3)
-        label = np.transpose(label, [1, 0])
 
         bpp_max = np.expand_dims(np.max(image, axis=-1), -1)
         bpp_sum=np.expand_dims(np.sum(image, axis=-1), -1)
