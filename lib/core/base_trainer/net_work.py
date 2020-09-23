@@ -267,7 +267,7 @@ class Train(object):
       ###save the best auc model
 
       #### save the model every end of epoch
-      current_model_saved_name='./models/fold%d_epoch_%d_val_loss%.6f.pth'%(self.fold,epoch,summary_loss.avg)
+      current_model_saved_name='./models/%s_fold%d_epoch_%d_val_loss%.6f.pth'%(self.model_name,self.fold,epoch,summary_loss.avg)
 
       logger.info('A model saved to %s' % current_model_saved_name)
       torch.save(self.model.state_dict(),current_model_saved_name)
