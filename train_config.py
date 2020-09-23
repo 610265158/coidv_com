@@ -29,7 +29,7 @@ config.TRAIN.vis_mixcut=False
 if config.TRAIN.vis:
     config.TRAIN.mix_precision=False                                            ##use mix precision to speedup, tf1.14 at least
 else:
-    config.TRAIN.mix_precision = True
+    config.TRAIN.mix_precision = False
 
 config.TRAIN.opt='Adamw'
 
@@ -70,7 +70,7 @@ config.MODEL.num_class=9
 config.MODEL.freeze_bn=False
 config.MODEL.freeze_bn_affine=False
 
-config.MODEL.ema=False
+config.MODEL.ema=True
 config.MODEL.focal_loss=False
 config.SEED=42
 
