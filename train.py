@@ -25,6 +25,7 @@ def main():
 
     models=[{'model_name':'gru','model':Complexer,'mtype':0,"weights":[],'avgloss':0},
             {'model_name': 'lstm', 'model': Complexer, 'mtype': 1,"weights":[],'avgloss':0},
+            {'model_name': 'transformer', 'model': Complexer, 'mtype': 2, "weights": [], 'avgloss': 0},
             ]
 
     for model_type in models:
