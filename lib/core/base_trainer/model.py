@@ -10,114 +10,12 @@ from efficientnet_pytorch.model import MemoryEfficientSwish
 from train_config import config as cfg
 
 
-def gem(x, p=3, eps=1e-5):
-    return F.avg_pool2d(x.clamp(min=eps).pow(p), (x.size(-2), x.size(-1))).pow(1./p)
 
-class GeM(nn.Module):
-
-    def __init__(self, p=3, eps=1e-5):
-        super(GeM, self).__init__()
-        self.p = Parameter(torch.ones(1) * p)
-        self.eps = eps
-
-    def forward(self, x):
-        return gem(x, p=self.p, eps=self.eps)
-
-    def __repr__(self):
-        return self.__class__.__name__ + '(' + 'p=' + '{:.4f}'.format(self.p.data.tolist()[0]) + ', ' + 'eps=' + str(
-            self.eps) + ')'
-
-
-class Net(nn.Module):
-    def __init__(self, pred_len=68):
-        super().__init__()
-
-        # self.mean_tensor=torch.from_numpy(cfg.DATA.PIXEL_MEAN ).float().cuda()
-        # self.std_val_tensor = torch.from_numpy(cfg.DATA.PIXEL_STD).float().cuda()
-        self.model = EfficientNet.from_pretrained(model_name='efficientnet-b1')
-        # self.model = timm.create_model('tf_efficientnet_b0_ns', pretrained=True)
-
-
-        self.decoder_1=nn.Sequential(nn.ConvTranspose2d(40,128,kernel_size=4,stride=2,padding=1),
-                                      nn.BatchNorm2d(128),
-                                      MemoryEfficientSwish())
-
-        self.decoder_2 = nn.Sequential(nn.ConvTranspose2d(128, 256, kernel_size=4, stride=2, padding=1),
-                                       nn.BatchNorm2d(256),
-                                       MemoryEfficientSwish())
-
-        self.decoder_3 = nn.Sequential(nn.ConvTranspose2d(256, 256, kernel_size=4, stride=2, padding=1),
-                                       nn.BatchNorm2d(256),
-                                       MemoryEfficientSwish())
-
-
-
-        self.pred_len=pred_len
-
-    def forward(self, inputs):
-
-        inputs=torch.cat([inputs,inputs,inputs],dim=1)
-        #do preprocess
-        bs = inputs.size(0)
-        # Convolution layers
-        x,fms = self.model.extract_features(inputs)
-
-
-
-        # for k,item in enumerate(fms):
-        #
-        #     print(k,item.shape)
-
-
-
-        fm_used=fms[8]
-        decod1=self.decoder_1(fm_used)
-        decod2 = self.decoder_2(decod1)
-        decod3 = self.decoder_3(decod2)
-
-        x=torch.mean(decod3,dim=2)
-        x=torch.transpose(x,2,1)
-        x=x[:,:self.pred_len,...]
-
-
-        return x
-
-
-
-
-
+ACT_FUNCTION=MemoryEfficientSwish
 token2int = {x:i for i, x in enumerate('().ACGUBEHIMSX')}
 
 
 
-class Wave_Block(nn.Module):
-    def __init__(self, in_channels, out_channels, dilation_rates, kernel_size):
-        super(Wave_Block, self).__init__()
-        self.num_rates = dilation_rates
-        self.convs = nn.ModuleList()
-        self.filter_convs = nn.ModuleList()
-        self.gate_convs = nn.ModuleList()
-
-        self.convs.append(nn.Conv1d(in_channels, out_channels, kernel_size=1))
-        dilation_rates = [2 ** i for i in range(dilation_rates)]
-
-        for dilation_rate in dilation_rates:
-            self.filter_convs.append(
-                nn.Conv1d(out_channels, out_channels, kernel_size=kernel_size,
-                          padding=int((dilation_rate * (kernel_size - 1)) / 2), dilation=dilation_rate))
-            self.gate_convs.append(
-                nn.Conv1d(out_channels, out_channels, kernel_size=kernel_size,
-                          padding=int((dilation_rate * (kernel_size - 1)) / 2), dilation=dilation_rate))
-            self.convs.append(nn.Conv1d(out_channels, out_channels, kernel_size=1))
-
-    def forward(self, x):
-        x = self.convs[0](x)
-        res = x
-        for i in range(self.num_rates):
-            x = torch.tanh(self.filter_convs[i](x)) * torch.sigmoid(self.gate_convs[i](x))
-            x = self.convs[i + 1](x)
-            res = res + x
-        return res
 
 class Attention(nn.Module):
     def __init__(self, input_dim=384,refraction=4):
@@ -140,6 +38,47 @@ class Attention(nn.Module):
 
         return x*attention
 
+class InceptionBlock(nn.Module):
+    def __init__(self, input_dim=512,output_dim=512):
+        super(InceptionBlock, self).__init__()
+
+        self.conv1=nn.Sequential(nn.Conv1d(in_channels=input_dim, kernel_size=1, out_channels=output_dim//4,
+                                              stride=1),
+                                nn.BatchNorm1d(output_dim//4,momentum=0.01),
+
+                                )
+
+        self.conv3 = nn.Sequential(nn.Conv1d(in_channels=input_dim, kernel_size=1, out_channels=output_dim // 4,
+                                               stride=1,
+                                             padding=2),
+                                     nn.BatchNorm1d(output_dim // 4, momentum=0.01),
+
+        )
+        self.conv5 = nn.Sequential(nn.Conv1d(in_channels=input_dim, kernel_size=1, out_channels=output_dim // 4,
+                                               stride=1,padding=3),
+                                     nn.BatchNorm1d(output_dim // 4, momentum=0.01),
+
+        )
+        self.conv7 = nn.Sequential(nn.Conv1d(in_channels=input_dim, kernel_size=1, out_channels=output_dim // 4,
+                                               stride=1,padding=4),
+                                     nn.BatchNorm1d(output_dim // 4, momentum=0.01),
+
+        )
+
+
+        self.act=ACT_FUNCTION()
+    def forward(self,x):
+
+
+        eye1 = self.conv1(x)
+        eye2 = self.conv2(x)
+        eye3 = self.conv3(x)
+        eye4 = self.conv4(x)
+
+
+        x=torch.cat([eye1,eye2,eye3,eye4],dim=1)
+        x=self.act(x)
+        return x
 
 class GRU_model(nn.Module):
     def __init__(
@@ -171,13 +110,13 @@ class GRU_model(nn.Module):
                                               stride=1,
                                               padding=2,bias=False),
                                     nn.BatchNorm1d(256,momentum=0.01),
-                                    MemoryEfficientSwish(),
+                                    ACT_FUNCTION(),
                                     Attention(256),
                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                 stride=1,
                                                 padding=2, bias=False),
                                     nn.BatchNorm1d(256, momentum=0.01),
-                                    MemoryEfficientSwish(),
+                                    ACT_FUNCTION(),
                                       )
 
     def forward(self, seqs):
@@ -234,13 +173,13 @@ class LSTM_model(nn.Module):
                                               stride=1,
                                               padding=2,bias=False),
                                     nn.BatchNorm1d(256,momentum=0.01),
-                                    MemoryEfficientSwish(),
+                                    ACT_FUNCTION(),
                                     Attention(256),
                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                 stride=1,
                                                 padding=2, bias=False),
                                     nn.BatchNorm1d(256, momentum=0.01),
-                                    MemoryEfficientSwish(),
+                                    ACT_FUNCTION(),
                                       )
 
     def forward(self, seqs):
@@ -305,13 +244,13 @@ class LSTM_GRU_model(nn.Module):
                                               stride=1,
                                               padding=2,bias=False),
                                     nn.BatchNorm1d(256,momentum=0.01),
-                                    MemoryEfficientSwish(),
+                                    ACT_FUNCTION(),
                                     Attention(256),
                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                 stride=1,
                                                 padding=2, bias=False),
                                     nn.BatchNorm1d(256, momentum=0.01),
-                                    MemoryEfficientSwish(),
+                                    ACT_FUNCTION(),
                                       )
 
     def forward(self, seqs):
@@ -378,13 +317,13 @@ class GRU_LSTM_model(nn.Module):
                                                  stride=1,
                                                  padding=2, bias=False),
                                        nn.BatchNorm1d(256, momentum=0.01),
-                                       MemoryEfficientSwish(),
+                                       ACT_FUNCTION(),
                                        Attention(256),
                                        nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                  stride=1,
                                                  padding=2, bias=False),
                                        nn.BatchNorm1d(256, momentum=0.01),
-                                       MemoryEfficientSwish(),
+                                       ACT_FUNCTION(),
                                        )
 
     def forward(self, seqs):
@@ -421,7 +360,7 @@ class TRANSFORMER_model(nn.Module):
                                               stride=1,
                                               padding=2,bias=False),
                                     nn.BatchNorm1d(512,momentum=0.01),
-                                    MemoryEfficientSwish())
+                                    ACT_FUNCTION())
         self.gru = nn.GRU(
             input_size=embed_dim * 3 + 3,
             hidden_size=hidden_dim,
@@ -437,13 +376,13 @@ class TRANSFORMER_model(nn.Module):
                                                  stride=1,
                                                  padding=2, bias=False),
                                        nn.BatchNorm1d(256, momentum=0.01),
-                                       MemoryEfficientSwish(),
+                                       ACT_FUNCTION(),
                                        Attention(256),
                                        nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                  stride=1,
                                                  padding=2, bias=False),
                                        nn.BatchNorm1d(256, momentum=0.01),
-                                       MemoryEfficientSwish(),
+                                       ACT_FUNCTION(),
                                        )
     def forward(self, seqs):
 
