@@ -8,12 +8,13 @@ from train_config import config as cfg
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
+TTA=True
 ROOT='../stanford-covid-vaccine'
 train = pd.read_json(ROOT+'/train.json', lines=True)
 test = pd.read_json(ROOT+'/test.json', lines=True)
 sample_sub = pd.read_csv(ROOT+'/sample_submission.csv')
 
+aug_df=pd.read_csv('../stanford-covid-vaccine/aug_data.csv')
 
 #target columns
 target_cols = ['reactivity', 'deg_Mg_pH10', 'deg_pH10', 'deg_Mg_50C', 'deg_50C']
@@ -68,12 +69,48 @@ def parse_file( train):
 
     return  np.array(reconstructed_data,dtype=np.float32)
 
+
+def get_sample(df,index):
+
+    cur_df=df.iloc[index:index+1]
+    if TTA:
+        target_df = cur_df.copy()
+        new_df = aug_df[aug_df['id'].isin(target_df['id'])]
+
+        del target_df['structure']
+        del target_df['predicted_loop_type']
+        new_df = new_df.merge(target_df, on=['id', 'sequence'], how='left')
+
+        cur_df['cnt'] = df['id'].map(new_df[['id', 'cnt']].set_index('id').to_dict()['cnt'])
+        cur_df['log_gamma'] = 100
+        cur_df['score'] = 1.0
+        cur_df = cur_df.append(new_df[cur_df.columns])
+
+    data=parse_file(cur_df)
+
+    return np.array(data,dtype=np.float32)
+
 public_df = test.query("seq_length == 107").copy()
 private_df = test.query("seq_length == 130").copy()
+
 
 public_inputs = parse_file(public_df)
 private_inputs = parse_file(private_df)
 
+
+def aug_data( df, aug_df):
+    target_df = df.copy()
+    new_df = aug_df[aug_df['id'].isin(target_df['id'])]
+
+    del target_df['structure']
+    del target_df['predicted_loop_type']
+    new_df = new_df.merge(target_df, on=['id', 'sequence'], how='left')
+
+    df['cnt'] = df['id'].map(new_df[['id', 'cnt']].set_index('id').to_dict()['cnt'])
+    df['log_gamma'] = 100
+    df['score'] = 1.0
+    df = df.append(new_df[df.columns])
+    return df
 
 ##prepare model
 
@@ -93,15 +130,22 @@ def predict_with_model(short_model,long_model,weights_list):
         #### ingerence with batchsize 1 reduce mem problem
         res = []
         for k in tqdm(range(public_inputs.shape[0])):
-            cur_pub_input = torch.from_numpy(public_inputs[k:k+1, ...]).to(device)
+
+            cur_input=get_sample(public_df,k)
+
+            cur_pub_input = torch.from_numpy(cur_input).to(device)
             cur_pub_res = short_model( cur_pub_input)
+            cur_pub_res = torch.mean(cur_pub_res,dim=0,keepdim=True)
             res.append(cur_pub_res.data.cpu().numpy())
         short_model_preds =np.concatenate(res,axis=0)
 
         res = []
         for k in tqdm(range(private_inputs.shape[0])):
-            cur_pub_input = torch.from_numpy(private_inputs[k:k + 1, ...]).to(device)
+            cur_input=get_sample(private_df,k)
+
+            cur_pub_input = torch.from_numpy(cur_input).to(device)
             cur_pub_res = long_model( cur_pub_input)
+            cur_pub_res = torch.mean(cur_pub_res, dim=0, keepdim=True)
             res.append(cur_pub_res.data.cpu().numpy())
         long_model_preds = np.concatenate(res, axis=0)
         ###merge
@@ -149,31 +193,18 @@ from lib.core.base_trainer.model import Complexer
 models=[{'model_name':'gru',
          'model':Complexer,
          'mtype':0,
-         "weights":['./models/fold0_epoch_62_val_loss0.234776.pth',
-                  './models/fold1_epoch_84_val_loss0.237888.pth',
-                  './models/fold2_epoch_80_val_loss0.245633.pth',
-                  './models/fold3_epoch_86_val_loss0.236568.pth',
-                  './models/fold4_epoch_96_val_loss0.238488.pth',
-                    './models/fold5_epoch_84_val_loss0.234435.pth',
-                    './models/fold6_epoch_81_val_loss0.241561.pth',
-                    './models/fold7_epoch_72_val_loss0.225847.pth',
-                    './models/fold8_epoch_94_val_loss0.229949.pth',
-                    './models/fold9_epoch_91_val_loss0.239800.pth']},
+         "weights":['./models/gru_fold0_epoch_36_val_loss0.227445.pth',
+                    './models/gru_fold1_epoch_34_val_loss0.230443.pth',
+                    './models/gru_fold2_epoch_36_val_loss0.234735.pth',
+                    './models/gru_fold3_epoch_30_val_loss0.233050.pth',
+                    './models/gru_fold4_epoch_33_val_loss0.232526.pth',
+                    './models/gru_fold5_epoch_32_val_loss0.229593.pth',
+                    './models/gru_fold6_epoch_35_val_loss0.238407.pth',
+                    './models/gru_fold7_epoch_31_val_loss0.223315.pth',
+                    './models/gru_fold8_epoch_35_val_loss0.224473.pth',
+                    './models/gru_fold9_epoch_38_val_loss0.234292.pth']},
 
-        {'model_name': 'lstm',
-         'model': Complexer,
-         'mtype': 1,
-         "weights": ['./models/fold0_epoch_74_val_loss0.235044.pth',
-                     './models/fold1_epoch_84_val_loss0.237119.pth',
-                     './models/fold2_epoch_92_val_loss0.247474.pth',
-                     './models/fold3_epoch_86_val_loss0.239721.pth',
-                     './models/fold4_epoch_96_val_loss0.242856.pth',
-                     './models/fold5_epoch_84_val_loss0.237105.pth',
-                     './models/fold6_epoch_76_val_loss0.244211.pth',
-                     './models/fold7_epoch_72_val_loss0.227574.pth',
-                     './models/fold8_epoch_94_val_loss0.232012.pth',
-                     './models/fold9_epoch_71_val_loss0.241952.pth']
-         }
+
             ]
 
 for model in models:
