@@ -64,7 +64,7 @@ class data_info(object):
 #
 #
 class DataIter():
-    def __init__(self,data,training_flag=True,shuffle=True):
+    def __init__(self,data,augdata,training_flag=True,shuffle=True):
 
         self.shuffle=shuffle
         self.training_flag=training_flag
@@ -76,7 +76,7 @@ class DataIter():
 
         if not training_flag:
             self.process_num=1
-        self.generator = AlaskaDataIter(data, self.training_flag,self.shuffle)
+        self.generator = AlaskaDataIter(data,augdata, self.training_flag,self.shuffle)
 
         self.ds=self.build_iter()
 
@@ -130,13 +130,17 @@ class DataIter():
 
 
 class AlaskaDataIter():
-    def __init__(self,data, training_flag=True,shuffle=True):
+    def __init__(self,data,augdata, training_flag=True,shuffle=True):
 
 
 
         self.training_flag = training_flag
         self.shuffle = shuffle
         self.SNR_THRS=1.
+
+        if cfg.DATA.AUG and augdata is not  None:
+
+            data=self.aug_data(data,augdata)
 
 
         raw_data,data,label=self.parse_file(data)
@@ -147,6 +151,22 @@ class AlaskaDataIter():
         self.data=data
         self.label=label
         self.raw_data_set_size = self.data.shape[0]  ##decided by self.parse_file
+
+
+    def aug_data(self,df,aug_df):
+
+        target_df = df.copy()
+        new_df = aug_df[aug_df['id'].isin(target_df['id'])]
+
+        del target_df['structure']
+        del target_df['predicted_loop_type']
+        new_df = new_df.merge(target_df, on=['id', 'sequence'], how='left')
+
+        df['cnt'] = df['id'].map(new_df[['id', 'cnt']].set_index('id').to_dict()['cnt'])
+        df['log_gamma'] = 100
+        df['score'] = 1.0
+        df = df.append(new_df[df.columns])
+        return df
 
     def __call__(self, *args, **kwargs):
         idxs = np.arange(self.data.shape[0])

@@ -21,6 +21,7 @@ def main():
 
     data = pd.read_json('folds.json',lines=True)
 
+    aug_data=pd.read_csv('../stanford-covid-vaccine/aug_data.csv')
     folds=[0,1,2,3,4,5,6,7,8,9]
 
     models=[{'model_name':'gru','model':Complexer,'mtype':0,"weights":[],'avgloss':0},
@@ -38,8 +39,8 @@ def main():
             train_data=data[data['fold']!=fold]
             val_data=data[data['fold']==fold]
 
-            train_ds=DataIter(train_data,shuffle=True,training_flag=True)
-            val_ds=DataIter(val_data,shuffle=False,training_flag=False)
+            train_ds=DataIter(train_data,aug_data,shuffle=True,training_flag=True)
+            val_ds=DataIter(val_data,None,shuffle=False,training_flag=False)
             ###build trainer
 
 
