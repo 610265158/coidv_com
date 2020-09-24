@@ -148,17 +148,20 @@ class GRU_model(nn.Module):
         super(GRU_model, self).__init__()
         self.pre_length = pred_len
 
-        self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
+        # self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
 
-        # self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=100,
-        #                                       stride=1,
-        #                                       padding=2,bias=False),
-        #                             nn.BatchNorm1d(384,momentum=0.01),
-        #                             MemoryEfficientSwish(),
-        #                               )
+        self.preconv = nn.Sequential( nn.Conv1d(in_channels=14+3,
+                                                out_channels=384,
+                                                kernel_size=5,
+
+                                              stride=1,
+                                              padding=2,bias=False),
+                                    nn.BatchNorm1d(384,momentum=0.01),
+                                    MemoryEfficientSwish(),
+                                      )
 
         self.gru = nn.GRU(
-            input_size=embed_dim * 3+3,
+            input_size=embed_dim * 3,
             hidden_size=hidden_dim,
             num_layers=hidden_layers,
             dropout=dropout,
@@ -181,19 +184,13 @@ class GRU_model(nn.Module):
                                       )
 
     def forward(self, seqs):
+        seqs = seqs.permute(0, 2, 1)
 
+        cnn_embes = self.preconv(seqs)
 
-        seqs_base=seqs[:,:,0:3].long()
+        cnn_embes = cnn_embes.permute(0, 2, 1)
 
-        seqs_extra_fea=seqs[:,:,3:]
-
-        embed = self.embeding(seqs_base)
-        embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
-
-        feature=torch.cat([embed_reshaped,seqs_extra_fea],dim=-1)
-
-
-        output, hidden = self.gru(feature)
+        output, hidden = self.gru(cnn_embes)
 
         output = output.permute(0, 2, 1)
 
@@ -211,14 +208,15 @@ class LSTM_model(nn.Module):
         super(LSTM_model, self).__init__()
         self.pre_length = pred_len
 
-        self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
+        self.preconv = nn.Sequential(nn.Conv1d(in_channels=14 + 3,
+                                               out_channels=384,
+                                               kernel_size=5,
 
-        # self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=100,
-        #                                       stride=1,
-        #                                       padding=2,bias=False),
-        #                             nn.BatchNorm1d(384,momentum=0.01),
-        #                             MemoryEfficientSwish(),
-        #                               )
+                                               stride=1,
+                                               padding=2, bias=False),
+                                     nn.BatchNorm1d(384, momentum=0.01),
+                                     MemoryEfficientSwish(),
+                                     )
 
         self.gru = nn.LSTM(
             input_size=embed_dim * 3+3,
@@ -244,19 +242,13 @@ class LSTM_model(nn.Module):
                                       )
 
     def forward(self, seqs):
+        seqs = seqs.permute(0, 2, 1)
 
+        cnn_embes = self.preconv(seqs)
 
-        seqs_base=seqs[:,:,0:3].long()
+        cnn_embes = cnn_embes.permute(0, 2, 1)
 
-        seqs_extra_fea=seqs[:,:,3:]
-
-        embed = self.embeding(seqs_base)
-        embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
-
-        feature=torch.cat([embed_reshaped,seqs_extra_fea],dim=-1)
-
-
-        output, hidden = self.gru(feature)
+        output, hidden = self.gru(cnn_embes)
 
         output = output.permute(0, 2, 1)
 
@@ -274,14 +266,15 @@ class LSTM_GRU_model(nn.Module):
         super(LSTM_GRU_model, self).__init__()
         self.pre_length = pred_len
 
-        self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
+        self.preconv = nn.Sequential(nn.Conv1d(in_channels=14 + 3,
+                                               out_channels=384,
+                                               kernel_size=5,
 
-        # self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=100,
-        #                                       stride=1,
-        #                                       padding=2,bias=False),
-        #                             nn.BatchNorm1d(384,momentum=0.01),
-        #                             MemoryEfficientSwish(),
-        #                               )
+                                               stride=1,
+                                               padding=2, bias=False),
+                                     nn.BatchNorm1d(384, momentum=0.01),
+                                     MemoryEfficientSwish(),
+                                     )
 
         self.lstm = nn.LSTM(
             input_size=embed_dim * 3+3,
@@ -315,19 +308,14 @@ class LSTM_GRU_model(nn.Module):
                                       )
 
     def forward(self, seqs):
+        seqs = seqs.permute(0, 2, 1)
+
+        cnn_embes = self.preconv(seqs)
+
+        cnn_embes = cnn_embes.permute(0, 2, 1)
 
 
-        seqs_base=seqs[:,:,0:3].long()
-
-        seqs_extra_fea=seqs[:,:,3:]
-
-        embed = self.embeding(seqs_base)
-        embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
-
-        feature=torch.cat([embed_reshaped,seqs_extra_fea],dim=-1)
-
-
-        output, hidden = self.lstm(feature)
+        output, hidden = self.lstm(cnn_embes)
         output, hidden = self.gru(output)
 
         output = output.permute(0, 2, 1)
@@ -338,7 +326,6 @@ class LSTM_GRU_model(nn.Module):
         output = output[:, :self.pre_length, ...]
 
         return output
-
 
 class GRU_LSTM_model(nn.Module):
     def __init__(

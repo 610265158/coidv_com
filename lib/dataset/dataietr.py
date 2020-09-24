@@ -192,11 +192,27 @@ class AlaskaDataIter():
         token2int = {x: i for i, x in enumerate('().ACGUBEHIMSX')}
 
         def preprocess_inputs(df, cols=['sequence', 'structure', 'predicted_loop_type']):
-            encode = np.array(df[cols]
-                              .applymap(lambda seq: [token2int[x] for x in seq])
-                              .values
-                              .tolist()
-                              )
+            seq_c = {x: i for i, x in enumerate('ACGU')}
+            struc_c = {x: i for i, x in enumerate('().')}
+            loop_c = {x: i for i, x in enumerate('BEHIMSX')}
+
+            seq_data = np.array(df[['sequence']]
+                                .applymap(lambda seq: [seq_c[x] for x in seq])
+                                .values
+                                .tolist()
+                                )
+            struct_data = np.array(df[['structure']]
+                                   .applymap(lambda seq: [struc_c[x] for x in seq])
+                                   .values
+                                   .tolist()
+                                   )
+            loop_data = np.array(df[['predicted_loop_type']]
+                                 .applymap(lambda seq: [loop_c[x] for x in seq])
+                                 .values
+                                 .tolist()
+                                 )
+
+            encode = np.concatenate([seq_data, struct_data, loop_data], axis=1)
 
             return encode
 
@@ -243,7 +259,17 @@ class AlaskaDataIter():
         data = self.data[index]
         label = self.label[index]
 
-        data = np.transpose(data, [1, 0])  ##shape [n,107,3)
+        data = np.transpose(data, [1, 0])  ##shape [107,3)
+
+        seq_data=data[...,0]
+        seq_data=self.onehot(seq_data,4)
+        struct_data = data[..., 1]
+        struct_data = self.onehot(struct_data, 3)
+        loop_data = data[..., 2]
+        loop_data = self.onehot(loop_data, 7)
+
+        data=np.concatenate([seq_data,struct_data,loop_data],axis=-1)
+
         label = np.transpose(label, [1, 0])
 
         bpp_max = np.expand_dims(np.max(image, axis=-1), -1)

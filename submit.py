@@ -27,6 +27,8 @@ def parse_file( train):
     token2int = {x: i for i, x in enumerate('().ACGUBEHIMSX')}
 
     def preprocess_inputs(df, cols=['sequence', 'structure', 'predicted_loop_type']):
+
+
         encode = np.array(df[cols]
                           .applymap(lambda seq: [token2int[x] for x in seq])
                           .values
