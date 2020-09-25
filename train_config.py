@@ -48,6 +48,7 @@ config.DATA.root_path=''
 config.DATA.train_txt_path='train.txt'
 config.DATA.val_txt_path='val.txt'
 config.DATA.AUG=True
+config.DATA.filter_noise=0.1
 ############the model is trained with RGB mode
 config.DATA.PIXEL_MEAN = np.array([ 0.460, 0.442 ,0.390 ]).reshape(1,3,1,1)           ###rgb
 config.DATA.PIXEL_STD = np.array([0.238, 0.219, 0.232]).reshape(1,3,1,1)

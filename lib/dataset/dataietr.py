@@ -153,8 +153,9 @@ class AlaskaDataIter():
         self.raw_data_set_size = self.data.shape[0]  ##decided by self.parse_file
 
 
-    def aug_data(self,df,aug_df):
-
+    def aug_data(self,df,aug_df,filter_noise=True):
+        if filter_noise:
+            df=df[df.signal_to_noise >cfg.DATA.filter_noise]
         target_df = df.copy()
         new_df = aug_df[aug_df['id'].isin(target_df['id'])]
 
