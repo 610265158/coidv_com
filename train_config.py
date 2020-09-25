@@ -69,7 +69,7 @@ config.MODEL.pretrained_model=None
 config.MODEL.num_class=9
 config.MODEL.freeze_bn=False
 config.MODEL.freeze_bn_affine=False
-
+config.MODEL.early_stop=20
 config.MODEL.ema=True
 config.MODEL.focal_loss=False
 config.SEED=42

@@ -216,6 +216,7 @@ class Train(object):
 
     best_loss = 10000.
     best_model = 'xxx'
+    not_improvement=0
     for epoch in range(self.epochs):
 
 
@@ -276,7 +277,12 @@ class Train(object):
       if summary_loss.avg<best_loss:
           best_loss=summary_loss.avg
           best_model=current_model_saved_name
+          not_improvement=0
+      else:
+          not_improvement+=1
 
+      if not_improvement>=cfg.MODEL.early_stop:
+          break
       ####switch back
       if cfg.MODEL.ema:
         self.ema.restore()
