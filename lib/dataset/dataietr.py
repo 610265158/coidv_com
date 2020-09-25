@@ -74,9 +74,11 @@ class DataIter():
         self.prefetch_size = cfg.TRAIN.prefetch_size
 
 
+
+        self.generator = AlaskaDataIter(data,augdata, self.training_flag,self.shuffle)
         if not training_flag:
             self.process_num=1
-        self.generator = AlaskaDataIter(data,augdata, self.training_flag,self.shuffle)
+            self.batch_size=len(self.generator)
 
         self.ds=self.build_iter()
 
@@ -120,7 +122,10 @@ class DataIter():
 
 
     def __len__(self):
-        return len(self.generator)//self.batch_size
+        if not self.training_flag:
+            return 1
+        else:
+            return len(self.generator)//self.batch_size
 
     def _map_func(self,dp,is_training):
 
