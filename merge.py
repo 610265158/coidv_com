@@ -6,11 +6,14 @@ df_1=pd.read_csv('./gru_submission.csv')
 df_2=pd.read_csv('./lstm_submission.csv')
 
 
+df_3=pd.read_csv('./transformer_submission.csv')
+
+df_4=pd.read_csv('./lstm_gru_submission.csv')
+
+df_5=pd.read_csv('./gru_lstm_submission.csv')
 
 
-
-
-model_result=[df_1,df_2]
+model_result=[df_1,df_2,df_3,df_4,df_5]
 for i in range(1, len(model_result)):
     model_result[0]['reactivity'] += model_result[i]['reactivity']
     model_result[0]['deg_Mg_pH10'] += model_result[i]['deg_Mg_pH10']
