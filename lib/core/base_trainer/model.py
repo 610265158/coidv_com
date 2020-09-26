@@ -88,13 +88,18 @@ class GRU_model(nn.Module):
         self.pre_length = pred_len
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
-
+        self.drop_embed=nn.Dropout(0.3)
         self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
                                               stride=1,
                                               padding=2,bias=False),
                                     nn.BatchNorm1d(128,momentum=0.01),
-                                    MemoryEfficientSwish(),
-                                    nn.Dropout(0.3)
+                                    ACT_FUNCTION(),
+                                    nn.Dropout(0.3),
+                                    nn.Conv1d(in_channels=128, kernel_size=5, out_channels=128,
+                                              stride=1,
+                                              padding=2, bias=False),
+                                    nn.BatchNorm1d(128, momentum=0.01),
+                                    ACT_FUNCTION(),
                                       )
 
         self.gru = nn.GRU(
@@ -141,7 +146,7 @@ class GRU_model(nn.Module):
 
 
         feature=torch.cat([embed_reshaped,seqs_extra_fea],dim=-1)
-
+        feature = self.drop_embed(feature)
 
         output, hidden = self.gru(feature)
 
@@ -162,13 +167,19 @@ class LSTM_model(nn.Module):
         self.pre_length = pred_len
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
-
-        # self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=100,
-        #                                       stride=1,
-        #                                       padding=2,bias=False),
-        #                             nn.BatchNorm1d(384,momentum=0.01),
-        #                             MemoryEfficientSwish(),
-        #                               )
+        self.drop_embed = nn.Dropout(0.3)
+        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
+                                               stride=1,
+                                               padding=2, bias=False),
+                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     ACT_FUNCTION(),
+                                     nn.Dropout(0.3),
+                                     nn.Conv1d(in_channels=128, kernel_size=5, out_channels=128,
+                                               stride=1,
+                                               padding=2, bias=False),
+                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     ACT_FUNCTION(),
+                                     )
 
         self.gru = nn.LSTM(
             input_size=embed_dim * 3+3,
@@ -194,18 +205,21 @@ class LSTM_model(nn.Module):
                                       )
 
     def forward(self, seqs):
+        seqs_base = seqs[:, :, 0:3].long()
 
-
-        seqs_base=seqs[:,:,0:3].long()
-
-        seqs_extra_fea=seqs[:,:,3:]
+        seqs_extra_fea = seqs[:, :, 3:]
 
         embed = self.embeding(seqs_base)
         embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
 
-        feature=torch.cat([embed_reshaped,seqs_extra_fea],dim=-1)
+        seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
 
+        seqs_extra_fea = self.preconv(seqs_extra_fea)
 
+        seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
+
+        feature = torch.cat([embed_reshaped, seqs_extra_fea], dim=-1)
+        feature = self.drop_embed(feature)
         output, hidden = self.gru(feature)
 
         output = output.permute(0, 2, 1)
@@ -225,14 +239,19 @@ class LSTM_GRU_model(nn.Module):
         self.pre_length = pred_len
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
-
-        # self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=100,
-        #                                       stride=1,
-        #                                       padding=2,bias=False),
-        #                             nn.BatchNorm1d(384,momentum=0.01),
-        #                             MemoryEfficientSwish(),
-        #                               )
-
+        self.drop_embed = nn.Dropout(0.3)
+        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
+                                               stride=1,
+                                               padding=2, bias=False),
+                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     ACT_FUNCTION(),
+                                     nn.Dropout(0.3),
+                                     nn.Conv1d(in_channels=128, kernel_size=5, out_channels=128,
+                                               stride=1,
+                                               padding=2, bias=False),
+                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     ACT_FUNCTION(),
+                                     )
         self.lstm = nn.LSTM(
             input_size=embed_dim * 3+3,
             hidden_size=hidden_dim,
@@ -265,17 +284,21 @@ class LSTM_GRU_model(nn.Module):
                                       )
 
     def forward(self, seqs):
+        seqs_base = seqs[:, :, 0:3].long()
 
-
-        seqs_base=seqs[:,:,0:3].long()
-
-        seqs_extra_fea=seqs[:,:,3:]
+        seqs_extra_fea = seqs[:, :, 3:]
 
         embed = self.embeding(seqs_base)
         embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
 
-        feature=torch.cat([embed_reshaped,seqs_extra_fea],dim=-1)
+        seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
 
+        seqs_extra_fea = self.preconv(seqs_extra_fea)
+
+        seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
+
+        feature = torch.cat([embed_reshaped, seqs_extra_fea], dim=-1)
+        feature = self.drop_embed(feature)
 
         output, hidden = self.lstm(feature)
         output, hidden = self.gru(output)
@@ -298,13 +321,19 @@ class GRU_LSTM_model(nn.Module):
         self.pre_length = pred_len
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
-
-        # self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=100,
-        #                                       stride=1,
-        #                                       padding=2,bias=False),
-        #                             nn.BatchNorm1d(384,momentum=0.01),
-        #                             MemoryEfficientSwish(),
-        #                               )
+        self.drop_embed = nn.Dropout(0.3)
+        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
+                                               stride=1,
+                                               padding=2, bias=False),
+                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     ACT_FUNCTION(),
+                                     nn.Dropout(0.3),
+                                     nn.Conv1d(in_channels=128, kernel_size=5, out_channels=128,
+                                               stride=1,
+                                               padding=2, bias=False),
+                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     ACT_FUNCTION(),
+                                     )
 
         self.gru = nn.GRU(
             input_size=embed_dim * 3 + 3,
@@ -345,8 +374,14 @@ class GRU_LSTM_model(nn.Module):
         embed = self.embeding(seqs_base)
         embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
 
-        feature = torch.cat([embed_reshaped, seqs_extra_fea], dim=-1)
+        seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
 
+        seqs_extra_fea = self.preconv(seqs_extra_fea)
+
+        seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
+
+        feature = torch.cat([embed_reshaped, seqs_extra_fea], dim=-1)
+        feature = self.drop_embed(feature)
         output, hidden = self.gru(feature)
         output, hidden = self.lstm(output)
 
@@ -366,12 +401,19 @@ class TRANSFORMER_model(nn.Module):
 
         self.pre_length = pred_len
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
-
-        self.preconv=nn.Sequential( nn.Conv1d(in_channels=384+3, kernel_size=5, out_channels=512,
-                                              stride=1,
-                                              padding=2,bias=False),
-                                    nn.BatchNorm1d(512,momentum=0.01),
-                                    ACT_FUNCTION())
+        self.drop_embed = nn.Dropout(0.3)
+        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
+                                               stride=1,
+                                               padding=2, bias=False),
+                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     ACT_FUNCTION(),
+                                     nn.Dropout(0.3),
+                                     nn.Conv1d(in_channels=128, kernel_size=5, out_channels=128,
+                                               stride=1,
+                                               padding=2, bias=False),
+                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     ACT_FUNCTION(),
+                                     )
         self.gru = nn.GRU(
             input_size=embed_dim * 3 + 3,
             hidden_size=hidden_dim,
@@ -396,15 +438,22 @@ class TRANSFORMER_model(nn.Module):
                                        ACT_FUNCTION(),
                                        )
     def forward(self, seqs):
+        seqs_base = seqs[:, :, 0:3].long()
 
-        seqs_base=seqs[:,:,0:3].long()
-
-        seqs_extra_fea=seqs[:,:,3:]
+        seqs_extra_fea = seqs[:, :, 3:]
 
         embed = self.embeding(seqs_base)
-
         embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
-        feature=torch.cat([embed_reshaped,seqs_extra_fea],dim=-1)
+
+        seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
+
+        seqs_extra_fea = self.preconv(seqs_extra_fea)
+
+        seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
+
+        feature = torch.cat([embed_reshaped, seqs_extra_fea], dim=-1)
+        feature = self.drop_embed(feature)
+
         output, hidden = self.gru(feature)
 
         encoded = self.encoder(output)
