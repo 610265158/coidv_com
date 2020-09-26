@@ -182,7 +182,7 @@ class LSTM_model(nn.Module):
                                      )
 
         self.gru = nn.LSTM(
-            input_size=embed_dim * 3+3,
+            input_size=embed_dim * 3+128,
             hidden_size=hidden_dim,
             num_layers=hidden_layers,
             dropout=dropout,
@@ -253,7 +253,7 @@ class LSTM_GRU_model(nn.Module):
                                      ACT_FUNCTION(),
                                      )
         self.lstm = nn.LSTM(
-            input_size=embed_dim * 3+3,
+            input_size=embed_dim * 3+128,
             hidden_size=hidden_dim,
             num_layers=hidden_layers-1,
             dropout=dropout,
@@ -336,7 +336,7 @@ class GRU_LSTM_model(nn.Module):
                                      )
 
         self.gru = nn.GRU(
-            input_size=embed_dim * 3 + 3,
+            input_size=embed_dim * 3 +128,
             hidden_size=hidden_dim,
             num_layers=hidden_layers - 1,
             dropout=dropout,
@@ -415,7 +415,7 @@ class TRANSFORMER_model(nn.Module):
                                      ACT_FUNCTION(),
                                      )
         self.gru = nn.GRU(
-            input_size=embed_dim * 3 + 3,
+            input_size=embed_dim * 3+128,
             hidden_size=hidden_dim,
             num_layers=hidden_layers,
             dropout=dropout,
