@@ -82,22 +82,23 @@ class InceptionBlock(nn.Module):
 
 class GRU_model(nn.Module):
     def __init__(
-        self, seq_length=107, pred_len=68, dropout=0.4, embed_dim=128, hidden_dim=256, hidden_layers=3
+        self, seq_length=107, pred_len=68, dropout=0.3, embed_dim=128, hidden_dim=256, hidden_layers=3
     ):
         super(GRU_model, self).__init__()
         self.pre_length = pred_len
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
 
-        # self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=100,
-        #                                       stride=1,
-        #                                       padding=2,bias=False),
-        #                             nn.BatchNorm1d(384,momentum=0.01),
-        #                             MemoryEfficientSwish(),
-        #                               )
+        self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
+                                              stride=1,
+                                              padding=2,bias=False),
+                                    nn.BatchNorm1d(128,momentum=0.01),
+                                    MemoryEfficientSwish(),
+                                    nn.Dropout(0.3)
+                                      )
 
         self.gru = nn.GRU(
-            input_size=embed_dim * 3+3,
+            input_size=embed_dim * 3+128,
             hidden_size=hidden_dim,
             num_layers=hidden_layers,
             dropout=dropout,
@@ -111,13 +112,14 @@ class GRU_model(nn.Module):
                                               padding=2,bias=False),
                                     nn.BatchNorm1d(256,momentum=0.01),
                                     ACT_FUNCTION(),
-                                    Attention(256),
+                                    nn.Dropout(0.3),
                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                 stride=1,
                                                 padding=2, bias=False),
                                     nn.BatchNorm1d(256, momentum=0.01),
                                     ACT_FUNCTION(),
-                                      )
+                                    nn.Dropout(0.3)
+                                    )
 
     def forward(self, seqs):
 
@@ -128,6 +130,15 @@ class GRU_model(nn.Module):
 
         embed = self.embeding(seqs_base)
         embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
+
+
+
+        seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
+
+        seqs_extra_fea = self.preconv(seqs_extra_fea)
+
+        seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
+
 
         feature=torch.cat([embed_reshaped,seqs_extra_fea],dim=-1)
 
@@ -424,7 +435,8 @@ class Complexer(nn.Module):
         elif mtype==4:
             self.data_model = GRU_LSTM_model(pred_len=self.pre_length)
 
-        self.fc=nn.Linear(256,5,bias=True)
+        self.fc=nn.Sequential(nn.Dropout(0.3),
+                              nn.Linear(256,5,bias=True))
 
     def forward(self,data):
 
