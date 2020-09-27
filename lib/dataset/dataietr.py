@@ -204,7 +204,34 @@ class AlaskaDataIter():
                               .tolist()
                               )
 
-            return encode
+            bpps_max=[]
+            bpps_sum = []
+            bpps_np=[]
+
+            for mol_id in df.id.to_list():
+
+                image=np.load(f"../stanford-covid-vaccine/bpps/{mol_id}.npy")
+
+                bpp_max = np.max(image, axis=-1)
+                bpp_sum = np.sum(image, axis=-1)
+
+                # bpp_nb_mean = 0.077522  # mean of bpps_nb across all training data
+                # bpp_nb_std = 0.08914  # std of bpps_nb across all training data
+                bpp_nb = (image > 0).sum(axis=0) / image.shape[0]
+                #bpp_nb = (bpp_nb - bpp_nb_mean) / bpp_nb_std
+
+                bpps_max.append(bpp_max)
+                bpps_sum.append(bpp_sum)
+                bpps_np.append(bpp_nb)
+
+            bpps_max= np.expand_dims(np.array(bpps_max),1)
+            bpps_sum = np.expand_dims(np.array(bpps_sum),1)
+            bpps_np = np.expand_dims(np.array(bpps_np),1)
+
+            data = np.concatenate([encode,bpps_max,bpps_sum,bpps_np],axis=1)
+
+
+            return data
 
         if not self.training_flag:
             train_inputs = preprocess_inputs(train[train.signal_to_noise > self.SNR_THRS])
@@ -229,9 +256,10 @@ class AlaskaDataIter():
             one_hot_label[i][lable[i]]=1
         return one_hot_label
 
+
     def get_one_sample(self,index,training):
 
-        iid = self.raw_data.iloc[index]['id']
+        #iid = self.raw_data.iloc[index]['id']
 
         snr=self.raw_data.iloc[index]['signal_to_noise']
 
@@ -240,28 +268,12 @@ class AlaskaDataIter():
         else:
             weights = 1
 
-        bpp_path = os.path.join('../stanford-covid-vaccine/bpps', iid + '.npy')
-
-        image = np.load(bpp_path)
-
-
-
         data = self.data[index]
         label = self.label[index]
 
-        data = np.transpose(data, [1, 0])  ##shape [n,107,3)
-        label = np.transpose(label, [1, 0])
+        data = np.transpose(data, [1,0])  ##shape [n,107,3)
+        label = np.transpose(label, [1,0])
 
-        bpp_max = np.expand_dims(np.max(image, axis=-1), -1)
-        bpp_sum=np.expand_dims(np.sum(image, axis=-1), -1)
-
-        bpps_nb_mean = 0.077522  # mean of bpps_nb across all training data
-        bpps_nb_std = 0.08914  # std of bpps_nb across all training data
-        bpps_nb = (image > 0).sum(axis=0) / image.shape[0]
-        bpps_nb = (bpps_nb - bpps_nb_mean) / bpps_nb_std
-
-        bpps_nb=np.expand_dims(bpps_nb,axis=-1)
-        data = np.concatenate([data, bpp_max,bpp_sum,bpps_nb], axis=1)
         return data, label,weights
 
 
