@@ -89,21 +89,21 @@ class GRU_model(nn.Module):
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
         self.drop_embed=nn.Dropout(0.3)
-        self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
+        self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=256,
                                               stride=1,
                                               padding=2,bias=False),
-                                    nn.BatchNorm1d(128,momentum=0.01),
+                                    nn.BatchNorm1d(256,momentum=0.01),
                                     ACT_FUNCTION(),
                                     nn.Dropout(0.3),
-                                    nn.Conv1d(in_channels=128, kernel_size=5, out_channels=128,
+                                    nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                               stride=1,
                                               padding=2, bias=False),
-                                    nn.BatchNorm1d(128, momentum=0.01),
+                                    nn.BatchNorm1d(256, momentum=0.01),
                                     ACT_FUNCTION(),
                                       )
 
         self.gru = nn.GRU(
-            input_size=embed_dim * 3+128,
+            input_size=embed_dim * 3+256,
             hidden_size=hidden_dim,
             num_layers=hidden_layers,
             dropout=dropout,
@@ -112,18 +112,18 @@ class GRU_model(nn.Module):
         )
 
 
-        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=256,
+        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
                                               stride=1,
                                               padding=2,bias=False),
-                                    nn.BatchNorm1d(256,momentum=0.01),
+                                    nn.BatchNorm1d(512,momentum=0.01),
                                     ACT_FUNCTION(),
-                                    nn.Dropout(0.3),
-                                    nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
+                                    nn.Dropout(0.5),
+                                    nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
                                                 stride=1,
                                                 padding=2, bias=False),
-                                    nn.BatchNorm1d(256, momentum=0.01),
+                                    nn.BatchNorm1d(512, momentum=0.01),
                                     ACT_FUNCTION(),
-                                    nn.Dropout(0.3)
+
                                     )
 
     def forward(self, seqs):
@@ -135,8 +135,6 @@ class GRU_model(nn.Module):
 
         embed = self.embeding(seqs_base)
         embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
-
-
 
         seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
 
@@ -168,21 +166,21 @@ class LSTM_model(nn.Module):
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
         self.drop_embed = nn.Dropout(0.3)
-        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
+        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=256,
                                                stride=1,
                                                padding=2, bias=False),
-                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     nn.BatchNorm1d(256, momentum=0.01),
                                      ACT_FUNCTION(),
                                      nn.Dropout(0.3),
-                                     nn.Conv1d(in_channels=128, kernel_size=5, out_channels=128,
+                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                stride=1,
                                                padding=2, bias=False),
-                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     nn.BatchNorm1d(256, momentum=0.01),
                                      ACT_FUNCTION(),
                                      )
 
         self.gru = nn.LSTM(
-            input_size=embed_dim * 3+128,
+            input_size=embed_dim * 3+256,
             hidden_size=hidden_dim,
             num_layers=hidden_layers,
             dropout=dropout,
@@ -190,19 +188,19 @@ class LSTM_model(nn.Module):
             batch_first=True,
         )
 
-        self.post_conv = nn.Sequential(nn.Conv1d(in_channels=512, kernel_size=5, out_channels=256,
-                                                 stride=1,
-                                                 padding=2, bias=False),
-                                       nn.BatchNorm1d(256, momentum=0.01),
-                                       ACT_FUNCTION(),
-                                       nn.Dropout(0.3),
-                                       nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
-                                                 stride=1,
-                                                 padding=2, bias=False),
-                                       nn.BatchNorm1d(256, momentum=0.01),
-                                       ACT_FUNCTION(),
-                                       nn.Dropout(0.3)
-                                       )
+        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
+                                              stride=1,
+                                              padding=2,bias=False),
+                                    nn.BatchNorm1d(512,momentum=0.01),
+                                    ACT_FUNCTION(),
+                                    nn.Dropout(0.5),
+                                    nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
+                                                stride=1,
+                                                padding=2, bias=False),
+                                    nn.BatchNorm1d(512, momentum=0.01),
+                                    ACT_FUNCTION(),
+
+                                    )
 
     def forward(self, seqs):
         seqs_base = seqs[:, :, 0:3].long()
@@ -233,27 +231,27 @@ class LSTM_model(nn.Module):
 
 class LSTM_GRU_model(nn.Module):
     def __init__(
-        self, seq_length=107, pred_len=68, dropout=0.4, embed_dim=128, hidden_dim=256, hidden_layers=3
+        self, seq_length=107, pred_len=68, dropout=0.3, embed_dim=128, hidden_dim=256, hidden_layers=3
     ):
         super(LSTM_GRU_model, self).__init__()
         self.pre_length = pred_len
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
         self.drop_embed = nn.Dropout(0.3)
-        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
+        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=256,
                                                stride=1,
                                                padding=2, bias=False),
-                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     nn.BatchNorm1d(256, momentum=0.01),
                                      ACT_FUNCTION(),
                                      nn.Dropout(0.3),
-                                     nn.Conv1d(in_channels=128, kernel_size=5, out_channels=128,
+                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                stride=1,
                                                padding=2, bias=False),
-                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     nn.BatchNorm1d(256, momentum=0.01),
                                      ACT_FUNCTION(),
                                      )
         self.lstm = nn.LSTM(
-            input_size=embed_dim * 3+128,
+            input_size=embed_dim * 3+256,
             hidden_size=hidden_dim,
             num_layers=hidden_layers-1,
             dropout=dropout,
@@ -270,18 +268,19 @@ class LSTM_GRU_model(nn.Module):
             batch_first=True,
         )
 
-        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=256,
+        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
                                               stride=1,
                                               padding=2,bias=False),
-                                    nn.BatchNorm1d(256,momentum=0.01),
+                                    nn.BatchNorm1d(512,momentum=0.01),
                                     ACT_FUNCTION(),
-                                    Attention(256),
-                                    nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
+                                    nn.Dropout(0.5),
+                                    nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
                                                 stride=1,
                                                 padding=2, bias=False),
-                                    nn.BatchNorm1d(256, momentum=0.01),
+                                    nn.BatchNorm1d(512, momentum=0.01),
                                     ACT_FUNCTION(),
-                                      )
+
+                                    )
 
     def forward(self, seqs):
         seqs_base = seqs[:, :, 0:3].long()
@@ -315,28 +314,28 @@ class LSTM_GRU_model(nn.Module):
 
 class GRU_LSTM_model(nn.Module):
     def __init__(
-            self, seq_length=107, pred_len=68, dropout=0.4, embed_dim=128, hidden_dim=256, hidden_layers=3
+            self, seq_length=107, pred_len=68, dropout=0.3, embed_dim=128, hidden_dim=256, hidden_layers=3
     ):
         super(GRU_LSTM_model, self).__init__()
         self.pre_length = pred_len
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
         self.drop_embed = nn.Dropout(0.3)
-        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
+        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=256,
                                                stride=1,
                                                padding=2, bias=False),
-                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     nn.BatchNorm1d(256, momentum=0.01),
                                      ACT_FUNCTION(),
                                      nn.Dropout(0.3),
-                                     nn.Conv1d(in_channels=128, kernel_size=5, out_channels=128,
+                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                stride=1,
                                                padding=2, bias=False),
-                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     nn.BatchNorm1d(256, momentum=0.01),
                                      ACT_FUNCTION(),
                                      )
 
         self.gru = nn.GRU(
-            input_size=embed_dim * 3 +128,
+            input_size=embed_dim * 3 +256,
             hidden_size=hidden_dim,
             num_layers=hidden_layers - 1,
             dropout=dropout,
@@ -353,18 +352,19 @@ class GRU_LSTM_model(nn.Module):
             batch_first=True,
         )
 
-        self.post_conv = nn.Sequential(nn.Conv1d(in_channels=512, kernel_size=5, out_channels=256,
-                                                 stride=1,
-                                                 padding=2, bias=False),
-                                       nn.BatchNorm1d(256, momentum=0.01),
-                                       ACT_FUNCTION(),
-                                       Attention(256),
-                                       nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
-                                                 stride=1,
-                                                 padding=2, bias=False),
-                                       nn.BatchNorm1d(256, momentum=0.01),
-                                       ACT_FUNCTION(),
-                                       )
+        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
+                                              stride=1,
+                                              padding=2,bias=False),
+                                    nn.BatchNorm1d(512,momentum=0.01),
+                                    ACT_FUNCTION(),
+                                    nn.Dropout(0.5),
+                                    nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
+                                                stride=1,
+                                                padding=2, bias=False),
+                                    nn.BatchNorm1d(512, momentum=0.01),
+                                    ACT_FUNCTION(),
+
+                                    )
 
     def forward(self, seqs):
         seqs_base = seqs[:, :, 0:3].long()
@@ -382,6 +382,8 @@ class GRU_LSTM_model(nn.Module):
 
         feature = torch.cat([embed_reshaped, seqs_extra_fea], dim=-1)
         feature = self.drop_embed(feature)
+
+
         output, hidden = self.gru(feature)
         output, hidden = self.lstm(output)
 
@@ -396,47 +398,50 @@ class GRU_LSTM_model(nn.Module):
 
 class TRANSFORMER_model(nn.Module):
     def __init__(
-        self, seq_length=107, pred_len=68, dropout=0.4, embed_dim=128, hidden_dim=256, hidden_layers=2):
+        self, seq_length=107, pred_len=68, dropout=0.3, embed_dim=128, hidden_dim=256, hidden_layers=2):
         super(TRANSFORMER_model, self).__init__()
 
         self.pre_length = pred_len
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
         self.drop_embed = nn.Dropout(0.3)
-        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=128,
+        self.preconv = nn.Sequential(nn.Conv1d(in_channels=3, kernel_size=5, out_channels=256,
                                                stride=1,
                                                padding=2, bias=False),
-                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     nn.BatchNorm1d(256, momentum=0.01),
                                      ACT_FUNCTION(),
                                      nn.Dropout(0.3),
-                                     nn.Conv1d(in_channels=128, kernel_size=5, out_channels=128,
+                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                stride=1,
                                                padding=2, bias=False),
-                                     nn.BatchNorm1d(128, momentum=0.01),
+                                     nn.BatchNorm1d(256, momentum=0.01),
                                      ACT_FUNCTION(),
                                      )
         self.gru = nn.GRU(
-            input_size=embed_dim * 3+128,
+            input_size=embed_dim * 3+256,
             hidden_size=hidden_dim,
             num_layers=hidden_layers,
             dropout=dropout,
             bidirectional=True,
             batch_first=True,
         )
-        self.encoder=nn.TransformerEncoder(nn.TransformerEncoderLayer(512, 64, 1024, dropout=0.2, activation='relu'),
+        self.encoder=nn.TransformerEncoder(nn.TransformerEncoderLayer(512, 64, 1024, dropout=0.3, activation='relu'),
                                             3)
 
-        self.post_conv = nn.Sequential(nn.Conv1d(in_channels=512, kernel_size=5, out_channels=256,
-                                                 stride=1,
-                                                 padding=2, bias=False),
-                                       nn.BatchNorm1d(256, momentum=0.01),
-                                       ACT_FUNCTION(),
-                                       Attention(256),
-                                       nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
-                                                 stride=1,
-                                                 padding=2, bias=False),
-                                       nn.BatchNorm1d(256, momentum=0.01),
-                                       ACT_FUNCTION(),
-                                       )
+        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
+                                              stride=1,
+                                              padding=2,bias=False),
+                                    nn.BatchNorm1d(512,momentum=0.01),
+                                    ACT_FUNCTION(),
+                                    nn.Dropout(0.5),
+                                    nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
+                                                stride=1,
+                                                padding=2, bias=False),
+                                    nn.BatchNorm1d(512, momentum=0.01),
+                                    ACT_FUNCTION(),
+
+                                    )
+
+
     def forward(self, seqs):
         seqs_base = seqs[:, :, 0:3].long()
 
@@ -484,8 +489,8 @@ class Complexer(nn.Module):
         elif mtype==4:
             self.data_model = GRU_LSTM_model(pred_len=self.pre_length)
 
-        self.fc=nn.Sequential(nn.Dropout(0.3),
-                              nn.Linear(256,5,bias=True))
+        self.fc=nn.Sequential(nn.Dropout(0.5),
+                              nn.Linear(512,5,bias=True))
 
     def forward(self,data):
 
