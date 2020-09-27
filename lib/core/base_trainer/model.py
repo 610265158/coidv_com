@@ -161,7 +161,7 @@ class GRU_model(nn.Module):
 
 class LSTM_model(nn.Module):
     def __init__(
-        self, seq_length=107, pred_len=68, dropout=0.4, embed_dim=128, hidden_dim=256, hidden_layers=3
+        self, seq_length=107, pred_len=68, dropout=0.3, embed_dim=128, hidden_dim=256, hidden_layers=3
     ):
         super(LSTM_model, self).__init__()
         self.pre_length = pred_len
@@ -190,19 +190,19 @@ class LSTM_model(nn.Module):
             batch_first=True,
         )
 
-
-        self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=256,
-                                              stride=1,
-                                              padding=2,bias=False),
-                                    nn.BatchNorm1d(256,momentum=0.01),
-                                    ACT_FUNCTION(),
-                                    Attention(256),
-                                    nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
-                                                stride=1,
-                                                padding=2, bias=False),
-                                    nn.BatchNorm1d(256, momentum=0.01),
-                                    ACT_FUNCTION(),
-                                      )
+        self.post_conv = nn.Sequential(nn.Conv1d(in_channels=512, kernel_size=5, out_channels=256,
+                                                 stride=1,
+                                                 padding=2, bias=False),
+                                       nn.BatchNorm1d(256, momentum=0.01),
+                                       ACT_FUNCTION(),
+                                       nn.Dropout(0.3),
+                                       nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
+                                                 stride=1,
+                                                 padding=2, bias=False),
+                                       nn.BatchNorm1d(256, momentum=0.01),
+                                       ACT_FUNCTION(),
+                                       nn.Dropout(0.3)
+                                       )
 
     def forward(self, seqs):
         seqs_base = seqs[:, :, 0:3].long()
