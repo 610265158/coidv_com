@@ -64,7 +64,7 @@ class data_info(object):
 #
 #
 class DataIter():
-    def __init__(self,data,training_flag=True,shuffle=True):
+    def __init__(self,data,augdata,training_flag=True,shuffle=True):
 
         self.shuffle=shuffle
         self.training_flag=training_flag
@@ -74,9 +74,11 @@ class DataIter():
         self.prefetch_size = cfg.TRAIN.prefetch_size
 
 
+
+        self.generator = AlaskaDataIter(data,augdata, self.training_flag,self.shuffle)
         if not training_flag:
             self.process_num=1
-        self.generator = AlaskaDataIter(data, self.training_flag,self.shuffle)
+            self.batch_size=len(self.generator)
 
         self.ds=self.build_iter()
 
@@ -120,7 +122,10 @@ class DataIter():
 
 
     def __len__(self):
-        return len(self.generator)//self.batch_size
+        if not self.training_flag:
+            return 1
+        else:
+            return len(self.generator)//self.batch_size
 
     def _map_func(self,dp,is_training):
 
@@ -130,7 +135,7 @@ class DataIter():
 
 
 class AlaskaDataIter():
-    def __init__(self,data, training_flag=True,shuffle=True):
+    def __init__(self,data,augdata, training_flag=True,shuffle=True):
 
 
 
@@ -138,15 +143,36 @@ class AlaskaDataIter():
         self.shuffle = shuffle
         self.SNR_THRS=1.
 
+        if cfg.DATA.AUG and augdata is not  None:
 
-        iid,data,label=self.parse_file(data)
+            data=self.aug_data(data,augdata)
+
+
+        raw_data,data,label=self.parse_file(data)
 
 
 
-        self.iid=iid
+        self.raw_data=raw_data
         self.data=data
         self.label=label
         self.raw_data_set_size = self.data.shape[0]  ##decided by self.parse_file
+
+
+    def aug_data(self,df,aug_df,filter_noise=True):
+        if filter_noise:
+            df=df[df.signal_to_noise >cfg.DATA.filter_noise]
+        target_df = df.copy()
+        new_df = aug_df[aug_df['id'].isin(target_df['id'])]
+
+        del target_df['structure']
+        del target_df['predicted_loop_type']
+        new_df = new_df.merge(target_df, on=['id', 'sequence'], how='left')
+
+        df['cnt'] = df['id'].map(new_df[['id', 'cnt']].set_index('id').to_dict()['cnt'])
+        df['log_gamma'] = 100
+        df['score'] = 1.0
+        df = df.append(new_df[df.columns])
+        return df
 
     def __call__(self, *args, **kwargs):
         idxs = np.arange(self.data.shape[0])
@@ -157,6 +183,7 @@ class AlaskaDataIter():
                 np.random.shuffle(idxs)
             for k in idxs:
                 yield self.single_map_func(k, self.training_flag)
+
 
     def __len__(self):
         assert self.raw_data_set_size is not None
@@ -177,39 +204,77 @@ class AlaskaDataIter():
                               .tolist()
                               )
 
-            return encode
+            bpps_max=[]
+            bpps_sum = []
+            bpps_np=[]
 
-        train_inputs = preprocess_inputs(train[train.signal_to_noise > self.SNR_THRS])
-        train_labels = np.array(train[train.signal_to_noise > self.SNR_THRS][target_cols].values.tolist())
+            for mol_id in df.id.to_list():
 
-        train_id=train[train.signal_to_noise > self.SNR_THRS]['id'].values.tolist()
+                image=np.load(f"../stanford-covid-vaccine/bpps/{mol_id}.npy")
+
+                bpp_max = np.max(image, axis=-1)
+                bpp_sum = np.sum(image, axis=-1)
+
+                # bpp_nb_mean = 0.077522  # mean of bpps_nb across all training data
+                # bpp_nb_std = 0.08914  # std of bpps_nb across all training data
+                bpp_nb = (image > 0).sum(axis=0) / image.shape[0]
+                #bpp_nb = (bpp_nb - bpp_nb_mean) / bpp_nb_std
+
+                bpps_max.append(bpp_max)
+                bpps_sum.append(bpp_sum)
+                bpps_np.append(bpp_nb)
+
+            bpps_max= np.expand_dims(np.array(bpps_max),1)
+            bpps_sum = np.expand_dims(np.array(bpps_sum),1)
+            bpps_np = np.expand_dims(np.array(bpps_np),1)
+
+            data = np.concatenate([encode,bpps_max,bpps_sum,bpps_np],axis=1)
+
+
+            return data
+
+        if not self.training_flag:
+            train_inputs = preprocess_inputs(train[train.signal_to_noise > self.SNR_THRS])
+            train_labels = np.array(train[train.signal_to_noise > self.SNR_THRS][target_cols].values.tolist())
+
+            train=train[train.signal_to_noise > self.SNR_THRS]
+
+        else:
+            train_inputs = preprocess_inputs(train)
+            train_labels = np.array(train[target_cols].values.tolist())
+
 
         logger.info('contains %d samples'%(train_labels.shape[0]) )
 
-        return train_id,train_inputs,train_labels
+        return train,train_inputs,train_labels
 
     def onehot(self,lable,depth=1000):
-        one_hot_label=np.zeros(shape=depth)
+        length=lable.shape[0]
+        one_hot_label=np.zeros(shape=[length,depth])
 
-        if lable!=-1:
-            one_hot_label[lable]=1
+        for i in range(length):
+            one_hot_label[i][lable[i]]=1
         return one_hot_label
 
-    def get_one_sample(self,id,training):
-        iid = self.iid[id]
 
-        bpp_path = os.path.join('../stanford-covid-vaccine/bpps', iid + '.npy')
+    def get_one_sample(self,index,training):
 
-        image = np.load(bpp_path)
-        image = np.expand_dims(image, axis=0)
-        data = self.data[id]
-        label = self.label[id]
+        #iid = self.raw_data.iloc[index]['id']
 
-        data = np.transpose(data, [1, 0])  ##shape [n,107,3)
-        label = np.transpose(label, [1, 0])
+        snr=self.raw_data.iloc[index]['signal_to_noise']
 
+        if training:
+            weights=np.log(snr + 1.1) / 2
+        else:
+            weights = 1
 
-        return image, data, label
+        data = self.data[index]
+        label = self.label[index]
+
+        data = np.transpose(data, [1,0])  ##shape [n,107,3)
+        label = np.transpose(label, [1,0])
+
+        return data, label,weights
 
 
     def pad_to_long(self,data,label,length=130,extra_length=23,training=True):
@@ -239,16 +304,14 @@ class AlaskaDataIter():
 
         return data,label
 
-    def single_map_func(self, id, is_training):
+    def single_map_func(self, index, is_training):
         """Data augmentation function."""
         ####customed here
 
-        image,data,label=self.get_one_sample(id,is_training)
+        data,label,weights=self.get_one_sample(index,is_training)
 
         if cfg.MODEL.pre_length==91:
             data, label=self.pad_to_long(data,label)
-
-
 
         # if is_training:
         #
@@ -258,4 +321,4 @@ class AlaskaDataIter():
         #         data[:cfg.MODEL.pre_length,:]=data[:cfg.MODEL.pre_length][::-1,:]
         #         label[:cfg.MODEL.pre_length,:]=label[:cfg.MODEL.pre_length][::-1,:]
 
-        return image,data,label
+        return data,label,weights
