@@ -6,6 +6,8 @@ import json
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+
 from lib.helper.logger import logger
 from tensorpack.dataflow import DataFromGenerator,BatchData, MultiProcessPrefetchData
 import time
@@ -215,10 +217,8 @@ class AlaskaDataIter():
                 bpp_max = np.max(image, axis=-1)
                 bpp_sum = np.sum(image, axis=-1)
 
-                # bpp_nb_mean = 0.077522  # mean of bpps_nb across all training data
-                # bpp_nb_std = 0.08914  # std of bpps_nb across all training data
+
                 bpp_nb = (image > 0).sum(axis=0) / image.shape[0]
-                #bpp_nb = (bpp_nb - bpp_nb_mean) / bpp_nb_std
 
                 bpps_max.append(bpp_max)
                 bpps_sum.append(bpp_sum)
@@ -230,7 +230,53 @@ class AlaskaDataIter():
 
             data = np.concatenate([encode,bpps_max,bpps_sum,bpps_np],axis=1)
 
+            ###  pair type, which type is it , AC GU or other
 
+            def get_structure_adj(train):
+                ## get adjacent matrix from structure sequence
+
+                ## here I calculate adjacent matrix of each base pair,
+                ## but eventually ignore difference of base pair and integrate into one matrix
+                pair_types = []
+                for i in tqdm(range(len(train))):
+                    seq_length = train["seq_length"].iloc[i]
+                    structure = train["structure"].iloc[i]
+                    sequence = train["sequence"].iloc[i]
+
+                    cue = []
+                    a_structures = {
+                        ("A", "U"): np.zeros([seq_length, seq_length]),
+                        ("C", "G"): np.zeros([seq_length, seq_length]),
+                        ("U", "G"): np.zeros([seq_length, seq_length]),
+                        ("U", "A"): np.zeros([seq_length, seq_length]),
+                        ("G", "C"): np.zeros([seq_length, seq_length]),
+                        ("G", "U"): np.zeros([seq_length, seq_length]),
+                    }
+                    a_structure = np.zeros([seq_length, seq_length])
+                    for i in range(seq_length):
+                        if structure[i] == "(":
+                            cue.append(i)
+                        elif structure[i] == ")":
+                            start = cue.pop()
+                            #                 a_structure[start, i] = 1
+                            #                 a_structure[i, start] = 1
+                            a_structures[(sequence[start], sequence[i])][start, i] = 1
+                            a_structures[(sequence[i], sequence[start])][i, start] = 1
+
+                    cur_line=[]
+                    for k,v in a_structures.items():
+
+                        cur_line.append(np.sum(v,axis=-1))
+                    pair_types.append(np.array(cur_line))
+
+                pair_types = np.array(pair_types)
+
+                return pair_types
+
+            pair_types=get_structure_adj(df)
+
+            data=np.concatenate([data,pair_types],axis=1)
+            print(data.shape)
             return data
 
         if not self.training_flag:
