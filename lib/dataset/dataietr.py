@@ -68,6 +68,10 @@ class data_info(object):
 class DataIter():
     def __init__(self,data,augdata,training_flag=True,shuffle=True):
 
+
+        self.data=data
+        self.augdata=augdata
+
         self.shuffle=shuffle
         self.training_flag=training_flag
         self.num_gpu = cfg.TRAIN.num_gpu
@@ -75,9 +79,9 @@ class DataIter():
         self.process_num = cfg.TRAIN.process_num
         self.prefetch_size = cfg.TRAIN.prefetch_size
 
+        self.cnt=0
 
-
-        self.generator = AlaskaDataIter(data,augdata, self.training_flag,self.shuffle)
+        self.generator = AlaskaDataIter(data,augdata, self.training_flag,self.shuffle,SNR_FILTER=5.0)
         if not training_flag:
             self.process_num=1
             self.batch_size=len(self.generator)
@@ -86,6 +90,13 @@ class DataIter():
 
         self.size = self.__len__()
 
+    def reset(self,SNR_FILTER=1.):
+        self.generator = AlaskaDataIter(self.data, self.augdata, self.training_flag, self.shuffle,SNR_FILTER)
+        if not self.training_flag:
+            self.process_num = 1
+            self.batch_size = len(self.generator)
+
+        self.ds = self.build_iter()
 
     def parse_file(self,im_root_path,ann_file):
 
@@ -111,9 +122,17 @@ class DataIter():
 
     def __call__(self, *args, **kwargs):
 
+        self.cnt+=1
 
 
+        if self.cnt==5000 :
+            logger.info('reset filter by 3')
+            self.reset(3)
+        if self.cnt == 10000 :
+            logger.info('reset filter by 1')
+            self.reset(1)
 
+        self.cnt+=1
 
         one_batch=next(self.ds)
 
@@ -137,13 +156,13 @@ class DataIter():
 
 
 class AlaskaDataIter():
-    def __init__(self,data,augdata, training_flag=True,shuffle=True):
+    def __init__(self,data,augdata, training_flag=True,shuffle=True,SNR_FILTER=1.):
 
 
 
         self.training_flag = training_flag
         self.shuffle = shuffle
-        self.SNR_THRS=1.
+        self.SNR_THRS=SNR_FILTER
 
         if cfg.DATA.AUG and augdata is not  None:
 
@@ -209,29 +228,31 @@ class AlaskaDataIter():
             bpps_max=[]
             bpps_sum = []
             bpps_np=[]
-
+            bpps_mean=[]
+            bpps_unpair=[]
             for mol_id in df.id.to_list():
 
                 image=np.load(f"../stanford-covid-vaccine/bpps/{mol_id}.npy")
 
                 bpp_max = np.max(image, axis=-1)
                 bpp_sum = np.sum(image, axis=-1)
-
-
+                bpp_mean = bpp_sum/107
+                bpp_unpair=1-bpp_sum
                 bpp_nb = (image > 0).sum(axis=0) / image.shape[0]
 
                 bpps_max.append(bpp_max)
                 bpps_sum.append(bpp_sum)
                 bpps_np.append(bpp_nb)
-
+                bpps_mean.append(bpp_mean)
+                bpps_unpair.append(bpp_unpair)
             bpps_max= np.expand_dims(np.array(bpps_max),1)
             bpps_sum = np.expand_dims(np.array(bpps_sum),1)
             bpps_np = np.expand_dims(np.array(bpps_np),1)
-
-            data = np.concatenate([encode,bpps_max,bpps_sum,bpps_np],axis=1)
+            bpps_mean = np.expand_dims(np.array(bpps_mean), 1)
+            bpps_unpair = np.expand_dims(np.array(bpps_unpair), 1)
+            data = np.concatenate([encode,bpps_max,bpps_sum,bpps_np,bpps_mean,bpps_unpair],axis=1)
 
             ###  pair type, which type is it , AC GU or other
-
             def get_structure_adj(train):
                 ## get adjacent matrix from structure sequence
 
@@ -266,13 +287,12 @@ class AlaskaDataIter():
                     cur_line=[]
                     for k,v in a_structures.items():
 
-                        cur_line.append(np.sum(v,axis=-1))
+                        cur_line.append(np.sum(v,axis=0))
                     pair_types.append(np.array(cur_line))
 
                 pair_types = np.array(pair_types)
 
                 return pair_types
-
             pair_types=get_structure_adj(df)
 
             data=np.concatenate([data,pair_types],axis=1)
@@ -280,10 +300,10 @@ class AlaskaDataIter():
             return data
 
         if not self.training_flag:
-            train_inputs = preprocess_inputs(train[train.signal_to_noise > self.SNR_THRS])
-            train_labels = np.array(train[train.signal_to_noise > self.SNR_THRS][target_cols].values.tolist())
+            train_inputs = preprocess_inputs(train[train.signal_to_noise > 1.])
+            train_labels = np.array(train[train.signal_to_noise > 1.][target_cols].values.tolist())
 
-            train=train[train.signal_to_noise > self.SNR_THRS]
+            train=train[train.signal_to_noise > 1.]
 
         else:
             train_inputs = preprocess_inputs(train)
