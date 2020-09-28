@@ -80,7 +80,7 @@ class Train(object):
     if cfg.TRAIN.num_gpu>1:
         self.model=nn.DataParallel(self.model)
 
-    self.ema = EMA(self.model, 0.97)
+    self.ema = EMA(self.model, 0.99)
 
     self.ema.register()
     ###control vars
@@ -90,8 +90,8 @@ class Train(object):
 
     self.val_ds = val_ds
 
-    # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,mode='max', patience=3,verbose=True)
-    self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR( self.optimizer, self.epochs,eta_min=1.e-6)
+    self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,mode='min', patience=10,factor=0.5,min_lr=1.e-6,verbose=True)
+    # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR( self.optimizer, self.epochs,eta_min=1.e-6)
 
     self.criterion = MCRMSELoss().to(self.device)
 
@@ -198,7 +198,7 @@ class Train(object):
 
 
                 output = self.model(data)
-                loss=self.criterion(output,target,weights)
+                loss=self.criterion(output,target,weights,[0,1,3])
                 summary_loss.update(loss.detach().item(), batch_size)
 
                 if step % cfg.TRAIN.log_interval == 0:
@@ -258,8 +258,8 @@ class Train(object):
                                    self.fold,epoch, summary_loss.avg,(time.time() - t))
           logger.info(val_epoch_log_message)
 
-      self.scheduler.step()
-      # self.scheduler.step(final_scores.avg)
+      # self.scheduler.step()
+      self.scheduler.step(summary_loss.avg)
 
 
       #### save model

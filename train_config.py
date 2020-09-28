@@ -58,7 +58,7 @@ config.DATA.PIXEL_STD = np.array([0.238, 0.219, 0.232]).reshape(1,3,1,1)
 
 
 ####mainly hyper params
-config.TRAIN.warmup_step=300
+config.TRAIN.warmup_step=500
 config.TRAIN.opt='Adamw'
 config.TRAIN.SWA=-1    ### -1 use no swa   from which epoch start SWA
 config.MODEL.label_smooth=0.05
