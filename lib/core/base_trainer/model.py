@@ -89,7 +89,7 @@ class GRU_model(nn.Module):
 
         self.embeding = nn.Embedding(num_embeddings=len(token2int), embedding_dim=embed_dim)
         self.drop_embed=nn.Dropout(0.3)
-        self.preconv = nn.Sequential( nn.Conv1d(in_channels=3, kernel_size=5, out_channels=256,
+        self.preconv = nn.Sequential( nn.Conv1d(in_channels=3+6, kernel_size=5, out_channels=256,
                                               stride=1,
                                               padding=2,bias=False),
                                     nn.BatchNorm1d(256,momentum=0.01),
