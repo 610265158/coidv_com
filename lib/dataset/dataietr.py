@@ -516,8 +516,8 @@ class AlaskaDataIter():
         data = np.transpose(data, [1,0])  ##shape [n,107,3)
         label = np.transpose(label, [1,0])
         if training:
-            err_item=(5-label[...,5:])/5+1e-5
-            err_item[err_item<0]
+            err_item=(1-label[...,5:])/1 *weights
+            err_item[err_item<0]=0
         else:
             err_item=label[...,5:]*0+1
         label = label[..., 0:5]

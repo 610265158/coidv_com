@@ -217,6 +217,7 @@ class Train(object):
     best_loss = 10000.
     best_model = 'xxx'
     not_improvement=0
+    current_model_saved_name='xx'
     for epoch in range(self.epochs):
 
 
