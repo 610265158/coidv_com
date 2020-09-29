@@ -267,14 +267,18 @@ class Train(object):
           os.mkdir(cfg.MODEL.model_path)
       ###save the best auc model
 
-      #### save the model every end of epoch
-      current_model_saved_name='./models/%s_fold%d_epoch_%d_val_loss%.6f.pth'%(self.model_name,self.fold,epoch,summary_loss.avg)
-
-      logger.info('A model saved to %s' % current_model_saved_name)
-      torch.save(self.model.state_dict(),current_model_saved_name)
 
 
       if summary_loss.avg<best_loss:
+
+          #### save the model every end of epoch
+          current_model_saved_name = './models/%s_fold%d_epoch_%d_val_loss%.6f.pth' % (
+          self.model_name, self.fold, epoch, summary_loss.avg)
+
+          logger.info('A model saved to %s' % current_model_saved_name)
+          torch.save(self.model.state_dict(), current_model_saved_name)
+
+
           best_loss=summary_loss.avg
           best_model=current_model_saved_name
           not_improvement=0
