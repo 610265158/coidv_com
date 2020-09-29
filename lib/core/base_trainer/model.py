@@ -10,12 +10,23 @@ from efficientnet_pytorch.model import MemoryEfficientSwish
 from train_config import config as cfg
 
 
-MOMENTUM=0.1
+MOMENTUM=0.03
 EPS=1e-5
 ACT_FUNCTION=MemoryEfficientSwish
 token2int = {x:i for i, x in enumerate('().ACGUBEHIMSX')}
 
+class SeparableConv1d(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False):
+        super(SeparableConv1d, self).__init__()
 
+        self.conv1 = nn.Conv1d(in_channels, in_channels, kernel_size, stride, padding, dilation, groups=in_channels,
+                               bias=bias)
+        self.pointwise = nn.Conv1d(in_channels, out_channels, 1, 1, 0, 1, 1, bias=bias)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.pointwise(x)
+        return x
 class ResBlock(nn.Module):
     def __init__(self, input_dim=256,output_dim=256,k_size=5):
         super(ResBlock, self).__init__()
@@ -90,12 +101,14 @@ class GRU_model(nn.Module):
                                               padding=2,bias=False),
                                     nn.BatchNorm1d(256,momentum=MOMENTUM,eps=EPS),
                                     ACT_FUNCTION(),
-                                    nn.Dropout(0.3),
+                                    nn.Dropout(0.5),
                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                               stride=1,
                                               padding=2, bias=False),
                                     nn.BatchNorm1d(256,momentum=MOMENTUM,eps=EPS),
                                     ACT_FUNCTION(),
+                                    nn.Dropout(0.5),
+
                                       )
 
         self.gru = nn.GRU(
@@ -119,7 +132,7 @@ class GRU_model(nn.Module):
                                                 padding=2, bias=False),
                                     nn.BatchNorm1d(512, momentum=MOMENTUM,eps=EPS),
                                     ACT_FUNCTION(),
-
+                                    nn.Dropout(0.5),
                                     )
 
     def forward(self, seqs):
@@ -131,16 +144,14 @@ class GRU_model(nn.Module):
 
         embed = self.embeding(seqs_base)
         embed_reshaped = torch.reshape(embed, (-1, embed.shape[1], embed.shape[2] * embed.shape[3]))
+        embed_reshaped = self.drop_embed(embed_reshaped)
 
         seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
-
         seqs_extra_fea = self.preconv(seqs_extra_fea)
-
         seqs_extra_fea = seqs_extra_fea.permute(0, 2, 1)
 
 
         feature=torch.cat([embed_reshaped,seqs_extra_fea],dim=-1)
-        feature = self.drop_embed(feature)
 
         output, hidden = self.gru(feature)
 
@@ -359,7 +370,7 @@ class GRU_LSTM_model(nn.Module):
                                                 padding=2, bias=False),
                                     nn.BatchNorm1d(512, momentum=0.01),
                                     ACT_FUNCTION(),
-
+                                    nn.Dropout(0.5),
                                     )
 
     def forward(self, seqs):
@@ -485,8 +496,7 @@ class Complexer(nn.Module):
         elif mtype==4:
             self.data_model = GRU_LSTM_model(pred_len=self.pre_length)
 
-        self.fc=nn.Sequential(nn.Dropout(0.5),
-                              nn.Linear(512,5,bias=True))
+        self.fc=nn.Sequential(nn.Linear(512,5,bias=True))
 
     def forward(self,data):
 
