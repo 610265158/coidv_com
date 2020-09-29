@@ -198,7 +198,7 @@ class Train(object):
 
 
                 output = self.model(data)
-                loss=self.criterion(output,target,weights,[0,1,3])
+                loss=self.criterion(output,target,weights)
                 summary_loss.update(loss.detach().item(), batch_size)
 
                 if step % cfg.TRAIN.log_interval == 0:
