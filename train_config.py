@@ -17,11 +17,11 @@ config.TRAIN.num_gpu = 1
 config.TRAIN.batch_size = 32
 config.TRAIN.log_interval = 100                  ##10 iters for a log msg
 config.TRAIN.test_interval = 1
-config.TRAIN.epoch = 100
+config.TRAIN.epoch = 200
 
 config.TRAIN.init_lr=5.e-4
 
-config.TRAIN.weight_decay_factor = 1.e-5                                  ####l2
+config.TRAIN.weight_decay_factor = 1.e-3                                  ####l2
 config.TRAIN.vis=False                                                      #### if to check the training data
 
 
@@ -48,6 +48,7 @@ config.DATA.root_path=''
 config.DATA.train_txt_path='train.txt'
 config.DATA.val_txt_path='val.txt'
 config.DATA.AUG=True
+config.DATA.two_stage_training=True
 config.DATA.filter_noise=0.1
 ############the model is trained with RGB mode
 config.DATA.PIXEL_MEAN = np.array([ 0.460, 0.442 ,0.390 ]).reshape(1,3,1,1)           ###rgb
