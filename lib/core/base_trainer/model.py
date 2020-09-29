@@ -10,12 +10,48 @@ from efficientnet_pytorch.model import MemoryEfficientSwish
 from train_config import config as cfg
 
 
-
+MOMENTUM=0.1
+EPS=1e-5
 ACT_FUNCTION=MemoryEfficientSwish
 token2int = {x:i for i, x in enumerate('().ACGUBEHIMSX')}
 
 
+class ResBlock(nn.Module):
+    def __init__(self, input_dim=256,output_dim=256,k_size=5):
+        super(ResBlock, self).__init__()
 
+
+        self.shortcut = nn.Sequential(nn.Conv1d(in_channels=input_dim,
+                                            out_channels=output_dim,
+                                            kernel_size=1,
+                                            stride=1),
+                                  nn.BatchNorm1d(output_dim, momentum=MOMENTUM, eps=EPS))
+
+
+        self.conv=nn.Sequential(nn.Conv1d(in_channels=input_dim,
+                                          out_channels=input_dim,
+                                          kernel_size=1,
+                                          stride=1),
+                                nn.BatchNorm1d(input_dim,momentum=MOMENTUM,eps=EPS),
+                                ACT_FUNCTION(),
+                                nn.Conv1d(in_channels=input_dim,
+                                          out_channels=output_dim,
+                                          kernel_size=k_size,
+                                          padding=((k_size-1)//2),
+                                          stride=1),
+                                nn.BatchNorm1d(output_dim ,momentum=MOMENTUM,eps=EPS),
+                                )
+
+
+        self.act=ACT_FUNCTION()
+    def forward(self,x):
+
+
+        shortcut=self.shortcut(x)
+
+        bypath=self.conv(x)
+
+        return self.act(shortcut+bypath)
 
 class Attention(nn.Module):
     def __init__(self, input_dim=384,refraction=4):
@@ -23,10 +59,10 @@ class Attention(nn.Module):
 
         self.conv=nn.Sequential(nn.Conv1d(in_channels=input_dim, kernel_size=1, out_channels=input_dim//refraction,
                                               stride=1),
-                                nn.BatchNorm1d(input_dim//refraction,momentum=0.01),
+                                nn.BatchNorm1d(input_dim//refraction,momentum=MOMENTUM,eps=EPS),
                                 nn.Conv1d(in_channels=input_dim//refraction, kernel_size=1, out_channels=input_dim,
                                           stride=1),
-                                nn.BatchNorm1d(input_dim, momentum=0.01),
+                                nn.BatchNorm1d(input_dim,momentum=MOMENTUM,eps=EPS),
                                 nn.Sigmoid()
                                 )
 
@@ -38,47 +74,7 @@ class Attention(nn.Module):
 
         return x*attention
 
-class InceptionBlock(nn.Module):
-    def __init__(self, input_dim=512,output_dim=512):
-        super(InceptionBlock, self).__init__()
 
-        self.conv1=nn.Sequential(nn.Conv1d(in_channels=input_dim, kernel_size=1, out_channels=output_dim//4,
-                                              stride=1),
-                                nn.BatchNorm1d(output_dim//4,momentum=0.01),
-
-                                )
-
-        self.conv3 = nn.Sequential(nn.Conv1d(in_channels=input_dim, kernel_size=1, out_channels=output_dim // 4,
-                                               stride=1,
-                                             padding=2),
-                                     nn.BatchNorm1d(output_dim // 4, momentum=0.01),
-
-        )
-        self.conv5 = nn.Sequential(nn.Conv1d(in_channels=input_dim, kernel_size=1, out_channels=output_dim // 4,
-                                               stride=1,padding=3),
-                                     nn.BatchNorm1d(output_dim // 4, momentum=0.01),
-
-        )
-        self.conv7 = nn.Sequential(nn.Conv1d(in_channels=input_dim, kernel_size=1, out_channels=output_dim // 4,
-                                               stride=1,padding=4),
-                                     nn.BatchNorm1d(output_dim // 4, momentum=0.01),
-
-        )
-
-
-        self.act=ACT_FUNCTION()
-    def forward(self,x):
-
-
-        eye1 = self.conv1(x)
-        eye2 = self.conv2(x)
-        eye3 = self.conv3(x)
-        eye4 = self.conv4(x)
-
-
-        x=torch.cat([eye1,eye2,eye3,eye4],dim=1)
-        x=self.act(x)
-        return x
 
 class GRU_model(nn.Module):
     def __init__(
@@ -92,13 +88,13 @@ class GRU_model(nn.Module):
         self.preconv = nn.Sequential( nn.Conv1d(in_channels=5+6, kernel_size=5, out_channels=256,
                                               stride=1,
                                               padding=2,bias=False),
-                                    nn.BatchNorm1d(256,momentum=0.01),
+                                    nn.BatchNorm1d(256,momentum=MOMENTUM,eps=EPS),
                                     ACT_FUNCTION(),
                                     nn.Dropout(0.3),
                                     nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                               stride=1,
                                               padding=2, bias=False),
-                                    nn.BatchNorm1d(256, momentum=0.01),
+                                    nn.BatchNorm1d(256,momentum=MOMENTUM,eps=EPS),
                                     ACT_FUNCTION(),
                                       )
 
@@ -115,13 +111,13 @@ class GRU_model(nn.Module):
         self.post_conv=nn.Sequential( nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
                                               stride=1,
                                               padding=2,bias=False),
-                                    nn.BatchNorm1d(512,momentum=0.01),
+                                    nn.BatchNorm1d(512,momentum=MOMENTUM,eps=EPS),
                                     ACT_FUNCTION(),
                                     nn.Dropout(0.5),
                                     nn.Conv1d(in_channels=512, kernel_size=5, out_channels=512,
                                                 stride=1,
                                                 padding=2, bias=False),
-                                    nn.BatchNorm1d(512, momentum=0.01),
+                                    nn.BatchNorm1d(512, momentum=MOMENTUM,eps=EPS),
                                     ACT_FUNCTION(),
 
                                     )
@@ -169,13 +165,13 @@ class LSTM_model(nn.Module):
         self.preconv = nn.Sequential(nn.Conv1d(in_channels=5+6, kernel_size=5, out_channels=256,
                                                stride=1,
                                                padding=2, bias=False),
-                                     nn.BatchNorm1d(256, momentum=0.01),
+                                     nn.BatchNorm1d(256,momentum=MOMENTUM,eps=EPS),
                                      ACT_FUNCTION(),
                                      nn.Dropout(0.3),
                                      nn.Conv1d(in_channels=256, kernel_size=5, out_channels=256,
                                                stride=1,
                                                padding=2, bias=False),
-                                     nn.BatchNorm1d(256, momentum=0.01),
+                                     nn.BatchNorm1d(256,momentum=MOMENTUM,eps=EPS),
                                      ACT_FUNCTION(),
                                      )
 
