@@ -132,14 +132,14 @@ class Train(object):
 
         start=time.time()
 
-        data, target,weights = self.train_ds()
-
+        image,data, target,weights = self.train_ds()
+        image= torch.from_numpy(image).to(self.device).float()
         data = torch.from_numpy(data).to(self.device).float()
         target = torch.from_numpy(target).to(self.device).float()
         weights = torch.from_numpy(weights).to(self.device).float()
         batch_size = data.shape[0]
 
-        output = self.model(data)
+        output = self.model(image,data)
         loss=self.criterion(output,target,weights)
         summary_loss.update(loss.detach().item(), batch_size)
 
@@ -188,8 +188,9 @@ class Train(object):
         t = time.time()
         with torch.no_grad():
             for step in range(self.val_ds.size):
-                data, target,weights = self.val_ds()
+                image,data, target,weights = self.val_ds()
 
+                image= torch.from_numpy(image).to(self.device).float()
 
                 data = torch.from_numpy(data).to(self.device).float()
                 target = torch.from_numpy(target).to(self.device).float()
@@ -197,7 +198,7 @@ class Train(object):
                 batch_size = data.shape[0]
 
 
-                output = self.model(data)
+                output = self.model(image,data)
                 loss=self.criterion(output,target,weights)
                 summary_loss.update(loss.detach().item(), batch_size)
 

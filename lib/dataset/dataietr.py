@@ -286,13 +286,6 @@ class DataIter():
         ds = ds.get_data()
         return ds
 
-    def __iter__(self):
-
-        for i in range(self.size):
-            one_batch = next(self.ds)
-
-            yield one_batch[0], one_batch[1]
-
     def __call__(self, *args, **kwargs):
 
         self.cnt+=1
@@ -309,9 +302,9 @@ class DataIter():
                 self.reset(0.1)
         one_batch=next(self.ds)
 
-        image,data,label=one_batch[0],one_batch[1],one_batch[2]
+        image,data,label,weights=one_batch[0],one_batch[1],one_batch[2],one_batch[3]
 
-        return image,data,label
+        return image,data,label,weights
 
 
 
@@ -342,10 +335,10 @@ class AlaskaDataIter():
             data=self.aug_data(data,augdata)
 
 
-        raw_data,data,label=self.parse_file(data)
+        images,raw_data,data,label=self.parse_file(data)
 
 
-
+        self.images=images
         self.raw_data=raw_data
         self.data=data
         self.label=label
@@ -399,19 +392,58 @@ class AlaskaDataIter():
                               .tolist()
                               )
 
-            bpps_max=[]
+            def draw_structure(structure: str):
+                pm = np.zeros((len(structure), len(structure)))
+                start_token_indices = []
+                for i, token in enumerate(structure):
+                    if token == "(":
+                        start_token_indices.append(i)
+                    elif token == ")":
+                        j = start_token_indices.pop()
+                        pm[i, j] = 1.0
+                        pm[j, i] = 1.0
+                return pm
+            bpps_max = []
             bpps_sum = []
-            bpps_np=[]
-            bpps_mean=[]
-            bpps_unpair=[]
-            for mol_id in df.id.to_list():
+            bpps_np = []
+            bpps_mean = []
+            bpps_unpair = []
+            images=[]
+            loops=[]
+
+            seq2int={x: i for i, x in enumerate('ACGU')}
+            loop2int = {x: i for i, x in enumerate('BEHIMSX')}
+            for k,mol_id in enumerate(df.id.to_list()):
 
                 image=np.load(f"../stanford-covid-vaccine/bpps/{mol_id}.npy")
 
+
+                seq=df.iloc[k]['sequence']
+
+                seq=np.array([seq2int[x] for x in seq])
+
+                seq_1=np.concatenate([seq.reshape([-1,seq.shape[0]]) for ii in range(seq.shape[0])], axis=0)
+
+                seq_2=np.concatenate([seq.reshape([seq.shape[0],-1]) for ii in range(seq.shape[0])], axis=1)
+
+                structure = df.iloc[k]['structure']
+                pm=draw_structure(structure)
+
+                loop = df.iloc[k]['predicted_loop_type']
+                loop = np.array([loop2int[x] for x in loop])
+
+                loop_1 = np.concatenate([loop.reshape([-1, loop.shape[0]]) for ii in range(loop.shape[0])], axis=0)
+
+                loop_2 = np.concatenate([loop.reshape([loop.shape[0], -1]) for ii in range(loop.shape[0])], axis=1)
+
+                image_stacked=np.stack([image,seq_1,seq_2,pm,loop_1,loop_2],axis=0)
+
+                images.append(image_stacked)
+
                 bpp_max = np.max(image, axis=-1)
                 bpp_sum = np.sum(image, axis=-1)
-                bpp_mean = bpp_sum/107
-                bpp_unpair=1-bpp_sum
+                bpp_mean = bpp_sum / 107
+                bpp_unpair = 1 - bpp_sum
                 bpp_nb = (image > 0).sum(axis=0) / image.shape[0]
 
                 bpps_max.append(bpp_max)
@@ -419,12 +451,13 @@ class AlaskaDataIter():
                 bpps_np.append(bpp_nb)
                 bpps_mean.append(bpp_mean)
                 bpps_unpair.append(bpp_unpair)
-            bpps_max= np.expand_dims(np.array(bpps_max),1)
-            bpps_sum = np.expand_dims(np.array(bpps_sum),1)
-            bpps_np = np.expand_dims(np.array(bpps_np),1)
+            bpps_max = np.expand_dims(np.array(bpps_max), 1)
+            bpps_sum = np.expand_dims(np.array(bpps_sum), 1)
+            bpps_np = np.expand_dims(np.array(bpps_np), 1)
             bpps_mean = np.expand_dims(np.array(bpps_mean), 1)
             bpps_unpair = np.expand_dims(np.array(bpps_unpair), 1)
-            data = np.concatenate([encode,bpps_max,bpps_sum,bpps_np,bpps_mean,bpps_unpair],axis=1)
+            data = np.concatenate([encode, bpps_max, bpps_sum, bpps_np, bpps_mean, bpps_unpair], axis=1)
+            images=np.array(images)
 
             ###  pair type, which type is it , AC GU or other
             def get_structure_adj(train):
@@ -470,23 +503,23 @@ class AlaskaDataIter():
             pair_types=get_structure_adj(df)
 
             data=np.concatenate([data,pair_types],axis=1)
-            print(data.shape)
-            return data
+
+            return images,data
 
         if not self.training_flag:
-            train_inputs = preprocess_inputs(train[train.signal_to_noise > 1.])
+            images,train_inputs = preprocess_inputs(train[train.signal_to_noise > 1.])
             train_labels = np.array(train[train.signal_to_noise > 1.][target_cols].values.tolist())
 
             train=train[train.signal_to_noise > 1.]
 
         else:
-            train_inputs = preprocess_inputs(train)
+            images,train_inputs = preprocess_inputs(train)
             train_labels = np.array(train[target_cols].values.tolist())
 
 
         logger.info('contains %d samples'%(train_labels.shape[0]) )
 
-        return train,train_inputs,train_labels
+        return images,train,train_inputs,train_labels
 
     def onehot(self,lable,depth=1000):
         length=lable.shape[0]
@@ -504,6 +537,7 @@ class AlaskaDataIter():
         snr=self.raw_data.iloc[index]['signal_to_noise']
 
 
+        image=self.images[index]
 
         if training:
             weights=np.log(snr + 1.1) / 2
@@ -522,7 +556,7 @@ class AlaskaDataIter():
             err_item=label[...,5:]*0+1
         label = label[..., 0:5]
 
-        return data, label,err_item
+        return image,data, label,err_item
 
 
     def pad_to_long(self,data,label,length=130,extra_length=23,training=True):
@@ -556,8 +590,8 @@ class AlaskaDataIter():
         """Data augmentation function."""
         ####customed here
 
-        data,label,weights=self.get_one_sample(index,is_training)
-
+        image,data,label,weights=self.get_one_sample(index,is_training)
+        print(image.shape)
         if cfg.MODEL.pre_length==91:
             data, label=self.pad_to_long(data,label)
 
@@ -569,11 +603,7 @@ class AlaskaDataIter():
         #         data[:cfg.MODEL.pre_length,:]=data[:cfg.MODEL.pre_length][::-1,:]
         #         label[:cfg.MODEL.pre_length,:]=label[:cfg.MODEL.pre_length][::-1,:]
 
-        return data,label,weights
+        return image,data,label,weights
 
 
 
-        self.raw_data=raw_data
-        self.data=data
-        self.label=label
-        self.raw_data_set_size = self.data.shape[0]  ##decided by self.parse_file

@@ -483,6 +483,130 @@ class TRANSFORMER_model(nn.Module):
 
         return output
 
+
+class OneDirectionResBlock(nn.Module):
+    def __init__(self,input_dim,k_size=3,stride=1,expansion=4):
+        super().__init__()
+        self.expansion=expansion
+        self.stride=stride
+        output_dim=expansion*input_dim
+
+
+        if stride==1:
+            if expansion!=1:
+                self.conv=nn.Sequential(
+                                    nn.Conv2d(in_channels=input_dim,
+                                              out_channels=output_dim,
+                                              kernel_size=[1, 1],
+                                              stride=(1, 1),
+                                              bias=False),
+                                    nn.BatchNorm2d(output_dim, momentum=MOMENTUM, eps=EPS),
+
+                )
+
+            self.bypath = nn.Sequential(
+                nn.Conv2d(in_channels=input_dim,
+                          out_channels=output_dim,
+                          kernel_size=[1, 1],
+                          stride=(1, 1),
+                          bias=False),
+                nn.BatchNorm2d(output_dim, momentum=MOMENTUM, eps=EPS),
+                ACT_FUNCTION(),
+
+                nn.Conv2d(in_channels=output_dim,
+                          out_channels=output_dim,
+                          kernel_size=[k_size, 1],
+                          stride=(1, 1),
+                          padding=((k_size - 1) // 2, 0)),
+                nn.BatchNorm2d(output_dim, momentum=MOMENTUM, eps=EPS),
+            )
+
+        else:
+            if expansion!=1 or stride!=1:
+                self.conv=nn.Sequential(
+                                    nn.Conv2d(in_channels=input_dim,
+                                              out_channels=output_dim,
+                                              kernel_size=[k_size, 1],
+                                              stride=(2, 1),
+                                              padding=((k_size-1), 0),
+                                              bias=False),
+                                    nn.BatchNorm2d(output_dim, momentum=MOMENTUM, eps=EPS),
+
+                )
+
+            self.bypath = nn.Sequential(
+                nn.Conv2d(in_channels=input_dim,
+                          out_channels=output_dim,
+                          kernel_size=[1, 1],
+                          stride=(1, 1),
+                          padding=(0, 0),
+                          bias=False),
+                nn.BatchNorm2d(output_dim, momentum=MOMENTUM, eps=EPS),
+                ACT_FUNCTION(),
+
+                nn.Conv2d(in_channels=output_dim,
+                          out_channels=output_dim,
+                          kernel_size=[k_size, 1],
+                          stride=(2, 1),
+                          padding=(k_size - 1, 0)),
+                nn.BatchNorm2d(output_dim, momentum=MOMENTUM, eps=EPS))
+
+        self.act=ACT_FUNCTION()
+    def forward(self, x):
+
+        if self.expansion!=1 or self.stride!=1:
+            short_cut=self.conv(x)
+        else:
+            short_cut=x
+
+        bypath=self.bypath(x)
+
+        return self.act(short_cut+bypath)
+
+
+
+class ImageModel(nn.Module):
+    def __init__(self,pred_len=68):
+        super().__init__()
+
+
+        self.pre_length=pred_len
+        self.conv1=nn.Sequential(nn.Conv2d(in_channels=6,out_channels=16,kernel_size=[7,1],stride=1,padding=(3,0)),
+                                 nn.BatchNorm2d(16,momentum=MOMENTUM,eps=EPS),
+                                 ACT_FUNCTION())
+
+        self.conv2=nn.Sequential(OneDirectionResBlock(16,k_size=5,expansion=2,stride=2),
+                                 OneDirectionResBlock(32, k_size=5, expansion=1),
+                                 )
+
+        self.conv3 =nn.Sequential(OneDirectionResBlock(32,k_size=5,expansion=2,stride=2),
+                                 OneDirectionResBlock(64, k_size=5, expansion=1),
+                                 )
+        self.conv4 = nn.Sequential(OneDirectionResBlock(64,k_size=5,expansion=2,stride=2),
+                                 OneDirectionResBlock(128, k_size=5, expansion=1),
+                                 )
+
+        self.conv5 = nn.Sequential(OneDirectionResBlock(128,k_size=5,expansion=2,stride=2),
+                                 OneDirectionResBlock(256, k_size=5, expansion=1,stride=1),
+                                 )
+    def forward(self,data):
+
+
+
+        x1=self.conv1(data)
+        x2 = self.conv2(x1)
+        x3 = self.conv3(x2)
+        x4 = self.conv4(x3)
+        x5 = self.conv5(x4)
+
+        output=torch.mean(x5,dim=2)
+
+        output = output.permute(0, 2, 1)
+        output = output[:, :self.pre_length, ...]
+
+
+        return output
+
 class Complexer(nn.Module):
     def __init__(self,pre_length= cfg.MODEL.pre_length,mtype=0):
         super().__init__()
@@ -501,20 +625,30 @@ class Complexer(nn.Module):
         elif mtype==4:
             self.data_model = GRU_LSTM_model(pred_len=self.pre_length)
 
-        self.fc=nn.Sequential(nn.Linear(512,5,bias=True))
 
-    def forward(self,data):
 
-        fm=self.data_model(data)
+        self.image_model=nn.Sequential(ImageModel(pred_len=self.pre_length),
+                                       nn.Dropout(0.5))
+
+
+        self.fc=nn.Sequential(nn.Linear(512+256,5,bias=True))
+
+    def forward(self,image,data):
+
+        image_fm=self.image_model(image)
+
+        rnn_fm=self.data_model(data)
+
+        fm=torch.cat([image_fm,rnn_fm],dim=2)
         out=self.fc(fm)
 
         return out
 
 if __name__=='__main__':
-    model=LSTM_GRU_model()
+    model=Complexer()
+    images=torch.zeros(size=[12,1,107,107])
+    test_data=torch.zeros(size=[12,107,16])
 
-    test_data=torch.zeros(size=[12,107,6])
-
-    res=model(test_data)
+    res=model(images,test_data)
 
     print(res.shape)
