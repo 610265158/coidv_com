@@ -264,6 +264,9 @@ class DataIter():
         self.size = self.__len__()
 
     def reset(self,SNR_FILTER=1.):
+
+
+        del self.generator
         self.generator = AlaskaDataIter(self.data, self.augdata, self.training_flag, self.shuffle,SNR_FILTER)
         if not self.training_flag:
             self.process_num = 1
@@ -301,11 +304,11 @@ class DataIter():
             if self.cnt==1000 :
                 logger.info('reset filter by 3')
                 self.reset(3)
-            if self.cnt == 2000 :
+            if self.cnt == 1500 :
                 logger.info('reset filter by 1')
                 self.reset(1)
-            if self.cnt == 3000 :
-                logger.info('reset filter by 1')
+            if self.cnt == 2000 :
+                logger.info('reset filter by 0.1')
                 self.reset(0.1)
         one_batch=next(self.ds)
 

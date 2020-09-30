@@ -24,6 +24,8 @@ token2int = {x:i for i, x in enumerate('().ACGUBEHIMSX')}
 
 def parse_file( train):
     # target columns
+    target_cols = ['reactivity', 'deg_Mg_pH10', 'deg_pH10', 'deg_Mg_50C', 'deg_50C',
+                   'reactivity_error', 'deg_error_Mg_pH10', 'deg_error_pH10', 'deg_error_Mg_50C', 'deg_error_50C']
 
     token2int = {x: i for i, x in enumerate('().ACGUBEHIMSX')}
 
@@ -34,41 +36,83 @@ def parse_file( train):
                           .tolist()
                           )
 
-        return encode
+        bpps_max = []
+        bpps_sum = []
+        bpps_np = []
+        bpps_mean = []
+        bpps_unpair = []
+        for mol_id in df.id.to_list():
+            image = np.load(f"../stanford-covid-vaccine/bpps/{mol_id}.npy")
+
+            bpp_max = np.max(image, axis=-1)
+            bpp_sum = np.sum(image, axis=-1)
+            bpp_mean = bpp_sum / 107
+            bpp_unpair = 1 - bpp_sum
+            bpp_nb = (image > 0).sum(axis=0) / image.shape[0]
+
+            bpps_max.append(bpp_max)
+            bpps_sum.append(bpp_sum)
+            bpps_np.append(bpp_nb)
+            bpps_mean.append(bpp_mean)
+            bpps_unpair.append(bpp_unpair)
+        bpps_max = np.expand_dims(np.array(bpps_max), 1)
+        bpps_sum = np.expand_dims(np.array(bpps_sum), 1)
+        bpps_np = np.expand_dims(np.array(bpps_np), 1)
+        bpps_mean = np.expand_dims(np.array(bpps_mean), 1)
+        bpps_unpair = np.expand_dims(np.array(bpps_unpair), 1)
+        data = np.concatenate([encode, bpps_max, bpps_sum, bpps_np, bpps_mean, bpps_unpair], axis=1)
+
+        ###  pair type, which type is it , AC GU or other
+        def get_structure_adj(train):
+            ## get adjacent matrix from structure sequence
+
+            ## here I calculate adjacent matrix of each base pair,
+            ## but eventually ignore difference of base pair and integrate into one matrix
+            pair_types = []
+            for i in (range(len(train))):
+                seq_length = train["seq_length"].iloc[i]
+                structure = train["structure"].iloc[i]
+                sequence = train["sequence"].iloc[i]
+
+                cue = []
+                a_structures = {
+                    ("A", "U"): np.zeros([seq_length, seq_length]),
+                    ("C", "G"): np.zeros([seq_length, seq_length]),
+                    ("U", "G"): np.zeros([seq_length, seq_length]),
+                    ("U", "A"): np.zeros([seq_length, seq_length]),
+                    ("G", "C"): np.zeros([seq_length, seq_length]),
+                    ("G", "U"): np.zeros([seq_length, seq_length]),
+                }
+                a_structure = np.zeros([seq_length, seq_length])
+                for i in range(seq_length):
+                    if structure[i] == "(":
+                        cue.append(i)
+                    elif structure[i] == ")":
+                        start = cue.pop()
+                        #                 a_structure[start, i] = 1
+                        #                 a_structure[i, start] = 1
+                        a_structures[(sequence[start], sequence[i])][start, i] = 1
+                        a_structures[(sequence[i], sequence[start])][i, start] = 1
+
+                cur_line = []
+                for k, v in a_structures.items():
+                    cur_line.append(np.sum(v, axis=0))
+                pair_types.append(np.array(cur_line))
+
+            pair_types = np.array(pair_types)
+
+            return pair_types
+
+        pair_types = get_structure_adj(df)
+
+        data = np.concatenate([data, pair_types], axis=1)
+        print(data.shape)
+        return data
 
 
     train_inputs = preprocess_inputs(train)
-
-    reconstructed_data=[]
-    for index in range(len(train)):
-        iid = train.iloc[index]['id']
-
-
-        bpp_path = os.path.join('../stanford-covid-vaccine/bpps', iid + '.npy')
-
-        image = np.load(bpp_path)
-
-        data = train_inputs[index]
-
-
-        data = np.transpose(data, [1, 0])  ##shape [n,107,3)
-
-
-        bpp_max = np.expand_dims(np.max(image, axis=-1), -1)
-        bpp_sum = np.expand_dims(np.sum(image, axis=-1), -1)
-
-        bpps_nb_mean = 0.077522  # mean of bpps_nb across all training data
-        bpps_nb_std = 0.08914  # std of bpps_nb across all training data
-        bpps_nb = (image > 0).sum(axis=0) / image.shape[0]
-        bpps_nb = (bpps_nb - bpps_nb_mean) / bpps_nb_std
-
-        bpps_nb = np.expand_dims(bpps_nb, axis=-1)
-        data = np.concatenate([data, bpp_max, bpp_sum, bpps_nb], axis=1)
-
-        reconstructed_data.append(data)
-
-    return  np.array(reconstructed_data,dtype=np.float32)
-
+    train_inputs=np.transpose(train_inputs,[0,2,1])
+    return train_inputs
 
 def get_sample(df,index):
 
@@ -93,9 +137,6 @@ def get_sample(df,index):
 public_df = test.query("seq_length == 107").copy()
 private_df = test.query("seq_length == 130").copy()
 
-
-public_inputs = parse_file(public_df)
-private_inputs = parse_file(private_df)
 
 
 def aug_data( df, aug_df):

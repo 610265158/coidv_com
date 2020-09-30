@@ -80,7 +80,7 @@ class Train(object):
     if cfg.TRAIN.num_gpu>1:
         self.model=nn.DataParallel(self.model)
 
-    self.ema = EMA(self.model, 0.99)
+    self.ema = EMA(self.model, 0.97)
 
     self.ema.register()
     ###control vars
