@@ -72,7 +72,8 @@ def main():
 
                             cv2.imshow('ss',example_image)
                             cv2.waitKey(0)
-
+                del train_ds
+                del val_ds
                 ### train
                 loss,model=trainer.custom_loop()
                 model_type['weights'].append(model)
