@@ -210,14 +210,14 @@ class Train(object):
 
         return summary_loss
 
+    best_loss = 10000.
+    best_model = 'xxx'
+    not_improvement = 0
+
     for epoch in range(self.epochs):
 
 
 
-      early_stop=20
-      best_loss=10000.
-      best_model='xxx'
-      not_improvement=0
       for param_group in self.optimizer.param_groups:
         lr=param_group['lr']
       logger.info('learning rate: [%f]' %(lr))
@@ -265,10 +265,8 @@ class Train(object):
 
       if summary_loss.avg<best_loss:
 
-
-
-          if os.access(current_model_saved_name,os.F_OK):
-              os.remove(current_model_saved_name)
+          if os.access(best_model, os.F_OK):
+              os.remove(best_model)
 
           #### save the model every end of epoch
           current_model_saved_name = './models/fold%d_epoch_%d_val_loss%.6f.pth' % (self.fold, epoch, summary_loss.avg)
@@ -282,8 +280,6 @@ class Train(object):
 
       else:
           not_improvement+=1
-
-
 
       if not_improvement>20:
 
