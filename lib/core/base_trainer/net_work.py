@@ -263,8 +263,12 @@ class Train(object):
       ###save the best auc model
 
 
-
       if summary_loss.avg<best_loss:
+
+
+
+          if os.access(current_model_saved_name,os.F_OK):
+              os.remove(current_model_saved_name)
 
           #### save the model every end of epoch
           current_model_saved_name = './models/fold%d_epoch_%d_val_loss%.6f.pth' % (self.fold, epoch, summary_loss.avg)
