@@ -214,9 +214,10 @@ class Train(object):
 
 
 
-
+      early_stop=20
       best_loss=10000.
       best_model='xxx'
+      not_improvement=0
       for param_group in self.optimizer.param_groups:
         lr=param_group['lr']
       logger.info('learning rate: [%f]' %(lr))
@@ -261,25 +262,33 @@ class Train(object):
           os.mkdir(cfg.MODEL.model_path)
       ###save the best auc model
 
-      #### save the model every end of epoch
-      current_model_saved_name='./models/fold%d_epoch_%d_val_loss%.6f.pth'%(self.fold,epoch,summary_loss.avg)
-
-      logger.info('A model saved to %s' % current_model_saved_name)
-      torch.save(self.model.state_dict(),current_model_saved_name)
 
 
       if summary_loss.avg<best_loss:
+
+          #### save the model every end of epoch
+          current_model_saved_name = './models/fold%d_epoch_%d_val_loss%.6f.pth' % (self.fold, epoch, summary_loss.avg)
+
+          logger.info('A model saved to %s' % current_model_saved_name)
+          torch.save(self.model.state_dict(), current_model_saved_name)
+
           best_loss=summary_loss.avg
           best_model=current_model_saved_name
+          not_improvement=0
+
+      else:
+          not_improvement+=1
+
+
+
+      if not_improvement>20:
+
+          logger.info('val loss not improve for 20 epochs ,was stopped, with best loss model %s'%(best_model))
+          break
 
       ####switch back
       if cfg.MODEL.ema:
         self.ema.restore()
-
-
-      # save_checkpoint({
-      #           'state_dict': self.model.state_dict(),
-      #           },iters=epoch,tag=current_model_saved_name)
 
       if cfg.TRAIN.SWA > 0 and epoch > cfg.TRAIN.SWA:
           ###switch back to plain model to train next epoch
