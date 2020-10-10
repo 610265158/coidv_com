@@ -15,7 +15,7 @@ config.TRAIN.prefetch_size = 15
 
 config.TRAIN.num_gpu = 1
 config.TRAIN.batch_size = 64
-config.TRAIN.log_interval = 100                  ##10 iters for a log msg
+config.TRAIN.log_interval = 10                  ##10 iters for a log msg
 config.TRAIN.test_interval = 1
 config.TRAIN.epoch = 150
 
@@ -57,7 +57,7 @@ config.DATA.PIXEL_STD = np.array([0.238, 0.219, 0.232]).reshape(1,3,1,1)
 
 
 ####mainly hyper params
-config.TRAIN.warmup_step=-3000
+config.TRAIN.warmup_step=3000
 config.TRAIN.opt='Adamw'
 config.TRAIN.SWA=-1    ### -1 use no swa   from which epoch start SWA
 config.MODEL.label_smooth=0.05
@@ -66,7 +66,7 @@ config.MODEL.gempool=False
 
 config.MODEL.pretrained_model=None
 
-config.MODEL.num_class=9
+config.MODEL.num_class=206
 config.MODEL.freeze_bn=False
 config.MODEL.freeze_bn_affine=False
 

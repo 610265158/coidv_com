@@ -8,7 +8,7 @@ from train_config import config as cfg
 
 import torch
 import torch.nn as nn
-
+from sklearn.metrics import log_loss
 
 from lib.helper.logger import logger
 class AverageMeter(object):
@@ -28,27 +28,31 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-class ACCMeter(object):
-    def __init__(self):
+class LoglossMeter(object):
+    def __init__(self,which_col=(0,206)):
         self.reset()
-
+        self.col_range=which_col
     def reset(self):
-        self.y_true = np.array([0,1])
-        self.y_pred = np.array([0,1])
+        self.y_true = np.array([0 for i in range(206)])
+        self.y_pred = np.array([0 for i in range(206)])
         self.score = 0
 
-    def update(self, y_true, y_pred):
-        y_true = y_true.cpu().numpy()
-        y_true = np.argmax(y_true,1)
-        y_pred = torch.sigmoid(y_pred).data.cpu().numpy()
-        y_pred = np.argmax(y_pred,1)
+        self.item=1
 
-        self.y_true = np.hstack((self.y_true, y_true))
-        self.y_pred = np.hstack((self.y_pred, y_pred))
+        self.eps=1e-5
+    def update(self,  y_pred,y_true):
+        y_true = y_true
+        y_pred = torch.sigmoid(y_pred)
 
+        logloss=y_true*torch.log(y_pred+self.eps)+(1-y_true)*torch.log(1-y_pred)
+
+        self.score+=torch.mean(logloss).cpu().item()
+
+
+        self.item+=1
 
     @property
     def avg(self):
-        right=(self.y_pred==self.y_true).astype(np.float)
-        return np.sum(right)/self.y_true.shape[0]
+
+        return self.score/self.item
 

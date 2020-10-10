@@ -15,7 +15,7 @@ from lib.helper.logger import logger
 
 from lib.core.model.ShuffleNet_Series.ShuffleNetV2.utils import accuracy, AvgrageMeter, CrossEntropyLabelSmooth, save_checkpoint, get_lastest_model, get_parameters
 from lib.core.model.loss.focal_loss import FocalLoss,FocalLoss4d
-from lib.core.base_trainer.model import Simple1dNet,GRU_model,Complexer
+from lib.core.base_trainer.model import Complexer
 
 
 from lib.core.base_trainer.metric import *
@@ -80,7 +80,7 @@ class Train(object):
     if cfg.TRAIN.num_gpu>1:
         self.model=nn.DataParallel(self.model)
 
-    self.ema = EMA(self.model, 0.999)
+    self.ema = EMA(self.model, 0.99)
 
     self.ema.register()
     ###control vars
@@ -93,7 +93,7 @@ class Train(object):
     # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,mode='max', patience=3,verbose=True)
     self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR( self.optimizer, self.epochs,eta_min=1.e-6)
 
-    self.criterion = MCRMSELoss().to(self.device)
+    self.criterion = nn.BCEWithLogitsLoss().to(self.device)
 
   def custom_loop(self):
     """Custom training and testing loop.
@@ -132,14 +132,14 @@ class Train(object):
 
         start=time.time()
 
-        images, data, target = self.train_ds()
-        images = torch.from_numpy(images).to(self.device).float()
-        data = torch.from_numpy(data).to(self.device).float()
-        target = torch.from_numpy(target).to(self.device).float()
-        batch_size = data.shape[0]
+        feature, target1, target2 = self.train_ds()
+        feature = torch.from_numpy(feature).to(self.device).float()
+        target1 = torch.from_numpy(target1).to(self.device).float()
+        target2 = torch.from_numpy(target2).to(self.device).float()
+        batch_size = feature.shape[0]
 
-        output = self.model(images,data)
-        loss=self.criterion(output,target)
+        output = self.model(feature)
+        loss=self.criterion(output,target1)
         summary_loss.update(loss.detach().item(), batch_size)
 
         self.optimizer.zero_grad()
@@ -187,17 +187,14 @@ class Train(object):
         t = time.time()
         with torch.no_grad():
             for step in range(self.val_ds.size):
-                images,data, target = self.val_ds()
+                feature, target1, target2 = self.val_ds()
+                feature = torch.from_numpy(feature).to(self.device).float()
+                target1 = torch.from_numpy(target1).to(self.device).float()
+                target2 = torch.from_numpy(target2).to(self.device).float()
+                batch_size = feature.shape[0]
 
-                images = torch.from_numpy(images).to(self.device).float()
-                data = torch.from_numpy(data).to(self.device).float()
-                target = torch.from_numpy(target).to(self.device).float()
-                
-                batch_size = data.shape[0]
-
-
-                output = self.model(images,data)
-                loss=self.criterion(output,target)
+                output = self.model(feature)
+                loss = self.criterion(output, target1)
                 summary_loss.update(loss.detach().item(), batch_size)
 
                 if step % cfg.TRAIN.log_interval == 0:

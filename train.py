@@ -16,10 +16,13 @@ setproctitle.setproctitle("alaska")
 
 def main():
 
+    feature_file = './folded.csv'
+    target_file = '../lish-moa/train_targets_scored.csv'
+    noscore_target = '../lish-moa/train_targets_nonscored.csv'
 
-
-
-    data = pd.read_json('folds.json',lines=True)
+    features = pd.read_csv(feature_file)
+    labels = pd.read_csv(target_file)
+    extra_labels = pd.read_csv(noscore_target)
 
 
 
@@ -29,11 +32,24 @@ def main():
     for fold in folds:
 
         ###build dataset
-        train_data=data[data['fold']!=fold]
-        val_data=data[data['fold']==fold]
 
-        train_ds=DataIter(train_data,shuffle=True,training_flag=True)
-        val_ds=DataIter(val_data,shuffle=False,training_flag=False)
+
+        train_ind = features[features['fold'] != fold].index.to_list()
+        train_features=features.iloc[train_ind]
+        train_target = labels.iloc[train_ind]
+        train_extra_Target = extra_labels.iloc[train_ind]
+
+
+
+
+        val_ind=features.loc[features['fold'] == fold].index.to_list()
+        val_features = features.iloc[val_ind]
+        val_target = labels.iloc[val_ind]
+        val_extra_Target = extra_labels.iloc[val_ind]
+
+
+        train_ds=DataIter(train_features,train_target,train_extra_Target,shuffle=True,training_flag=True)
+        val_ds=DataIter(val_features,val_target,val_extra_Target,shuffle=False,training_flag=False)
         ###build trainer
         trainer = Train(train_ds=train_ds,val_ds=val_ds,fold=fold)
 
