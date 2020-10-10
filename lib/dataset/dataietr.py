@@ -169,23 +169,19 @@ class AlaskaDataIter():
         labels_train = target
         extra_labels_train = extra_target
 
-        train_features=train_features.drop(['fold'], axis=1)
 
-        ###ctrl_vehicle have no moa , set 0 directly in submission
-        ###filter by ctl_vehicle
-        non_ctl_idx = train_features['cp_type'] != 'ctl_vehicle'
-        #bool index
 
-        train_features = train_features[non_ctl_idx]
-        labels_train = labels_train[non_ctl_idx]
-        extra_labels_train = extra_labels_train[non_ctl_idx]
+        def preprocess(df):
+            df = df.copy()
+            df.loc[:, 'cp_type'] = df.loc[:, 'cp_type'].map({'trt_cp': 0, 'ctl_vehicle': 1})
+            df.loc[:, 'cp_dose'] = df.loc[:, 'cp_dose'].map({'D1': 0, 'D2': 1})
 
-        ##encode cp_dose
-        dose = np.array(train_features['cp_dose'].values == 'D1', dtype=np.float32)
+            return df
 
-        train_features['cp_dose_encoded'] = dose
+        train_features=preprocess(train_features)
 
-        train_features = train_features.drop(['sig_id', 'cp_type', 'cp_dose'], axis=1).values
+
+        train_features = train_features.drop(['sig_id', 'fold' ], axis=1).values
 
 
 
