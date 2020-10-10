@@ -47,7 +47,7 @@ def predict_with_model(model,weights_list):
             input_data=torch.from_numpy(input_data).to(device).float()
             pre=model(input_data)
 
-
+            pre=torch.sigmoid(pre)
 
             cur_model_result.append(pre.cpu().numpy())
 
