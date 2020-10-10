@@ -49,7 +49,7 @@ def predict_with_model(model,weights_list):
 
 
 
-            cur_model_result.append(pre)
+            cur_model_result.append(pre.cpu().numpy())
 
     cur_model_result=np.stack(cur_model_result,axis=0)
     cur_model_result=np.mean(cur_model_result,axis=0)
