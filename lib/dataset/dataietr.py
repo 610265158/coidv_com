@@ -212,6 +212,26 @@ class AlaskaDataIter():
 
         return data,target,extra_target
 
+
+
+    def jitter(self,x, rate=0.5):
+
+        mask=np.random.uniform(0,1,size=x.shape[0])
+
+        mask=mask>rate
+
+        jitter=np.random.uniform(-1,1,size=x.shape[0])*mask*0.05
+
+        return x+jitter
+    def cutout(self,x, rate=0.2):
+
+        mask=np.random.uniform(0,1,size=x.shape[0])
+
+        mask=mask>rate
+
+        return x*mask
+
+
     def get_one_sample(self, index, is_training):
         data=self.data[index]
 
@@ -219,7 +239,12 @@ class AlaskaDataIter():
         target=self.label[index]
         extra_target=self.extra_label[index]
 
-        if np.isnan(data).any():
-            print('there is nanananananan')
-            print(data)
+        if is_training:
+
+            if random.uniform(0,1)<0.5:
+                data=self.jitter(data)
+            if random.uniform(0,1)<0.5:
+                data=self.cutout(data)
+
+            data[3:]=np.clip(data[3:],-10,10)
         return data,target,extra_target
