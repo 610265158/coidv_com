@@ -169,8 +169,6 @@ class AlaskaDataIter():
         labels_train = target
         extra_labels_train = extra_target
 
-
-
         def preprocess(df):
             df = df.copy()
             df.loc[:, 'cp_type'] = df.loc[:, 'cp_type'].map({'trt_cp': 0, 'ctl_vehicle': 1})
@@ -182,14 +180,15 @@ class AlaskaDataIter():
 
         ####filter control
         if cfg.DATA.filter_ctl_vehicle:
-            train_features=train_features[train_features['cp_type']!=1]
-
+            filter_index = train_features['cp_type'] != 1
+            train_features = train_features[filter_index]
+            labels_train = labels_train[filter_index]
+            extra_labels_train = extra_labels_train[filter_index]
 
         train_features = train_features.drop(['sig_id', 'fold' ], axis=1).values
 
         labels_train = labels_train.drop('sig_id', axis=1).values
         extra_labels_train = extra_labels_train.drop('sig_id', axis=1).values
-
 
 
         logger.info('dataset contains %d samples'%(train_features.shape[0]))
