@@ -181,13 +181,18 @@ class AlaskaDataIter():
         train_features=preprocess(train_features)
 
 
+        ####filter control
+        if cfg.DATA.filter_ctl_vehicle:
+            train_features=train_features[train_features['cp_type']!=1]
+
         train_features = train_features.drop(['sig_id', 'fold' ], axis=1).values
-
-
 
         labels_train = labels_train.drop('sig_id', axis=1).values
         extra_labels_train = extra_labels_train.drop('sig_id', axis=1).values
 
+
+
+        logger.info('dataset contains %d samples'%(train_features.shape[0]))
 
         return train_features,labels_train,extra_labels_train
 
