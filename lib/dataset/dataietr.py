@@ -180,9 +180,8 @@ class AlaskaDataIter():
 
         train_features=preprocess(train_features)
 
-
         ####filter control
-        if cfg.DATA.filter_ctl_vehicle:
+        if 0:
             train_features=train_features[train_features['cp_type']!=1]
 
         train_features = train_features.drop(['sig_id', 'fold' ], axis=1).values
