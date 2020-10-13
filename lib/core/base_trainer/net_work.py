@@ -167,7 +167,7 @@ class Train(object):
                           'time: %.6f, '\
                           'speed %d images/persec'% (
                               self.fold,
-                              step,
+                              self.iter_num,
                               summary_loss.avg,
                               time.time() - start,
                               images_per_sec)
