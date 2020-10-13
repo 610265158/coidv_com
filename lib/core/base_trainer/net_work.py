@@ -37,7 +37,10 @@ class Train(object):
   """Train class.
   """
 
-  def __init__(self,train_ds,val_ds,fold):
+  def __init__(self,model_name,model,train_ds,val_ds,fold):
+
+
+    self.model_name=model_name
     self.fold=fold
 
     self.init_lr=cfg.TRAIN.init_lr
@@ -49,7 +52,7 @@ class Train(object):
     self.device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 
 
-    self.model = Complexer().to(self.device)
+    self.model = model.to(self.device)
 
     self.load_weight()
 
@@ -269,7 +272,7 @@ class Train(object):
               os.remove(best_model)
 
           #### save the model every end of epoch
-          current_model_saved_name = './models/fold%d_epoch_%d_val_loss%.6f.pth' % (self.fold, epoch, summary_loss.avg)
+          current_model_saved_name = './models/%s_fold%d_epoch_%d_val_loss%.6f.pth' % (self.model_name,self.fold, epoch, summary_loss.avg)
 
           logger.info('A model saved to %s' % current_model_saved_name)
           torch.save(self.model.state_dict(), current_model_saved_name)
