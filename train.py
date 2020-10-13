@@ -17,6 +17,7 @@ setproctitle.setproctitle("alaska")
 from train_config import seed_everything
 from lib.helper.logger import logger
 
+import os
 
 from lib.core.base_trainer.model import Model2
 def main():
@@ -113,7 +114,7 @@ def main():
     for k,loss_and_model in enumerate(losscolector):
         print('fold %d : loss %.5f modelname: %s'%(k,loss_and_model[0],loss_and_model[1]))
         avg_loss+=loss_and_model[0]
-    print('average loss is ',avg_loss/len(folds))
+    print('average loss is ',avg_loss/(len(folds)+len(seeds)))
 
 
 if __name__=='__main__':
