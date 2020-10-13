@@ -113,7 +113,7 @@ def main():
     for k,loss_and_model in enumerate(losscolector):
         print('fold %d : loss %.5f modelname: %s'%(k,loss_and_model[0],loss_and_model[1]))
         avg_loss+=loss_and_model[0]
-    print('average loss is ',avg_loss/(len(folds)+len(seeds)))
+    print('average loss is ',avg_loss/(len(losscolector)))
 
 
 if __name__=='__main__':
