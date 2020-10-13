@@ -39,15 +39,15 @@ def main():
     losscolector=[]
     folds=[0,1,2,3,4]
     seeds=[40,41,42,43,44]
-    mskf = MultilabelStratifiedKFold(n_splits=len(folds))
 
+    n_fold=len(folds)
 
     for cur_seed in seeds:
         seed_everything(cur_seed)
         #### 5 fols split
         target_cols = [c for c in labels.columns if c not in ['sig_id']]
         features['fold'] = -1
-        Fold = MultilabelStratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+        Fold = MultilabelStratifiedKFold(n_splits=n_fold, shuffle=True, random_state=cur_seed)
         for fold, (train_index, test_index) in enumerate(Fold.split(features, labels[target_cols])):
             features['fold'][test_index] = fold
 
@@ -63,7 +63,6 @@ def main():
             train_features=features.iloc[train_ind]
             train_target = labels.iloc[train_ind]
             train_extra_Target = extra_labels.iloc[train_ind]
-
 
             val_ind=features.loc[features['fold'] == fold].index.to_list()
             val_features = features.iloc[val_ind]
