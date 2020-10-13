@@ -7,7 +7,7 @@ import numpy as np
 import copy
 import matplotlib.pyplot as plt
 from lib.helper.logger import logger
-from tensorpack.dataflow import DataFromGenerator,BatchData, MultiProcessPrefetchData
+from tensorpack.dataflow import DataFromGenerator, BatchData, MultiProcessPrefetchData, PrefetchDataZMQ
 import time
 
 
@@ -95,7 +95,7 @@ class DataIter():
         ds = DataFromGenerator(self.generator)
         ds = BatchData(ds, self.batch_size)
         if not cfg.TRAIN.vis:
-            ds = MultiProcessPrefetchData(ds, self.prefetch_size, self.process_num)
+            ds = PrefetchDataZMQ(ds, self.process_num)
         ds.reset_state()
         ds = ds.get_data()
         return ds
