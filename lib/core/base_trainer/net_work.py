@@ -21,7 +21,7 @@ from lib.core.base_trainer.model import Complexer
 from lib.core.base_trainer.metric import *
 import torch
 
-from lib.core.base_trainer.loss import MCRMSELoss
+from lib.core.base_trainer.loss import BCEWithLogitsLoss
 from torchcontrib.optim import SWA
 
 
@@ -96,6 +96,9 @@ class Train(object):
     self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,mode='min', patience=5,verbose=True)
     # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR( self.optimizer, self.epochs,eta_min=1.e-6)
 
+
+
+    self.train_criterion=BCEWithLogitsLoss(smooth_eps=0.001).to(self.device)
     self.criterion = nn.BCEWithLogitsLoss().to(self.device)
 
   def custom_loop(self):
@@ -142,7 +145,7 @@ class Train(object):
         batch_size = feature.shape[0]
 
         output = self.model(feature)
-        loss=self.criterion(output,target1)
+        loss=self.train_criterion(output,target1)
         summary_loss.update(loss.detach().item(), batch_size)
 
         self.optimizer.zero_grad()
