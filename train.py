@@ -19,7 +19,7 @@ from lib.helper.logger import logger
 
 import os
 
-from lib.core.base_trainer.model import Model2
+from lib.core.base_trainer.model import Complexer
 def main():
 
 
@@ -75,7 +75,7 @@ def main():
 
             ### build model
 
-            model=Model2(875, 206, 1024)
+            model=Complexer()
 
             model_name=str('Model2_seed_'+str(cur_seed))
             ###build trainer
