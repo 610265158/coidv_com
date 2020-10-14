@@ -241,12 +241,13 @@ class AlaskaDataIter():
         target=self.label[index]
         extra_target=self.extra_label[index]
 
-        # if is_training:
-        #
-        #     if random.uniform(0,1)<0.5:
-        #         data=self.jitter(data)
-        #     if random.uniform(0,1)<0.5:
-        #         data=self.cutout(data)
-        #
-        #     data[3:]=np.clip(data[3:],-10,10)
+        if is_training:
+
+            if random.uniform(0,1)<0.5:
+                data=self.jitter(data)
+            if random.uniform(0,1)<0.5:
+                data=self.cutout(data)
+
+            data[3:3+772]=np.clip(data[3:],-10,10)
+            data[775:875] = np.clip(data[3:], -10, 6)
         return data,target,extra_target

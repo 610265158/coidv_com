@@ -74,7 +74,7 @@ class Complexer(nn.Module):
     def __init__(self, num_features=875, num_targets=206, hidden_size=512):
         super(Complexer, self).__init__()
         self.batch_norm1 = nn.BatchNorm1d(num_features)
-        self.dropout1 = nn.Dropout(0.2)
+        self.dropout1 = nn.Dropout(0.3)
         self.dense1 =nn.Sequential(nn.Linear(num_features, hidden_size,bias=False),
                                    nn.BatchNorm1d(hidden_size,momentum=BN_MOMENTUM,eps=BN_EPS),
                                    ACT_FUNCTION(),
