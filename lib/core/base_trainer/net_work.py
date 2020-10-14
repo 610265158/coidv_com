@@ -93,8 +93,8 @@ class Train(object):
 
     self.val_ds = val_ds
 
-    # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,mode='max', patience=3,verbose=True)
-    self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR( self.optimizer, self.epochs,eta_min=1.e-6)
+    self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer,mode='min', patience=5,verbose=True)
+    # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR( self.optimizer, self.epochs,eta_min=1.e-6)
 
     self.criterion = nn.BCEWithLogitsLoss().to(self.device)
 
@@ -256,8 +256,8 @@ class Train(object):
                                    self.fold,epoch, summary_loss.avg,(time.time() - t))
           logger.info(val_epoch_log_message)
 
-      self.scheduler.step()
-      # self.scheduler.step(final_scores.avg)
+      # self.scheduler.step()
+      self.scheduler.step(summary_loss.avg)
 
 
       #### save model
