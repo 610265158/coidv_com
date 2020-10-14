@@ -248,6 +248,6 @@ class AlaskaDataIter():
             if random.uniform(0,1)<0.5:
                 data=self.cutout(data)
 
-            data[3:3+772]=np.clip(data[3:],-10,10)
-            data[775:875] = np.clip(data[3:], -10, 6)
+            data[3:3+772]=np.clip(data[3:3+772],-10,10)
+            data[775:875] = np.clip(data[775:875], -10, 6)
         return data,target,extra_target

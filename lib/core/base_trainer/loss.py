@@ -1,26 +1,28 @@
-
 import torch
+import math
 import torch.nn as nn
+import torch.nn.functional as F
 
-class RMSELoss(nn.Module):
-    def __init__(self, eps=1e-6):
-        super().__init__()
-        self.mse = nn.MSELoss()
-        self.eps = eps
 
-    def forward(self, pre, target):
-        loss = torch.sqrt(self.mse(pre, target) + self.eps)
+
+
+class BCEWithLogitsLoss(nn.Module):
+    def __init__(self, smooth_eps=None):
+        super(BCEWithLogitsLoss, self).__init__()
+
+
+
+
+
+
+        self.smooth=smooth_eps
+
+    def forward(self,input,target):
+        smooth_target = (
+                target * (1 - self.smooth) + 0.5 * self.smooth)
+
+        loss=F.binary_cross_entropy_with_logits(input,smooth_target)
+
         return loss
 
-class MCRMSELoss(nn.Module):
-    def __init__(self, num_scored=5):
-        super().__init__()
-        self.rmse = RMSELoss()
-        self.num_scored = num_scored
 
-    def forward(self, pre, target):
-        score = 0
-        for i in range(self.num_scored):
-            score += self.rmse(pre[:, :, i], target[:, :, i]) / self.num_scored
-
-        return score
