@@ -87,14 +87,18 @@ class Complexer(nn.Module):
                                    nn.BatchNorm1d(hidden_size, momentum=BN_MOMENTUM, eps=BN_EPS),
                                    ACT_FUNCTION(),
                                    nn.Dropout(0.5),
-                                   ResBlock(hidden_size, hidden_size)
+                                   ResBlock(hidden_size, hidden_size),
                                    )
 
+
+        self.max_p = nn.MaxPool1d(kernel_size=3,stride=1,padding=1)
+        self.mean_p = nn.AvgPool1d(kernel_size=3, stride=1, padding=1)
         self.att=Attention(hidden_size,hidden_size)
 
 
-        self.dense3 = nn.Linear(hidden_size, num_targets)
+        self.dense3 = nn.Linear(hidden_size, hidden_size)
 
+        self.dense4 = nn.Linear(hidden_size*2, num_targets)
     def forward(self, x):
 
 
@@ -106,6 +110,15 @@ class Complexer(nn.Module):
         x=self.att(x)
         x = self.dense3(x)
 
+
+        x=x.unsqueeze(dim=1)
+        yy=self.max_p(x)
+        zz=self.mean_p(x)
+        x=torch.cat([yy,zz],dim=2)
+        x=x.squeeze(1)
+
+
+        x = self.dense4(x)
         return x
 
 
