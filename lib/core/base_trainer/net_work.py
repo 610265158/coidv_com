@@ -70,7 +70,7 @@ class Train(object):
                                          lr=self.init_lr,eps=1.e-5)
     else:
       self.optimizer = torch.optim.SGD(self.model.parameters(),
-                                       lr=0.01,
+                                       lr=self.init_lr,
                                        momentum=0.9)
 
     if cfg.TRAIN.SWA>0:
