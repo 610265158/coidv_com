@@ -18,12 +18,10 @@ from train_config import seed_everything
 from lib.helper.logger import logger
 
 import os
-
+from sklearn.decomposition import PCA
+from sklearn.feature_selection import VarianceThreshold
 from lib.core.base_trainer.model import Complexer
 def main():
-
-
-
 
 
     feature_file = '../lish-moa/train_features.csv'
@@ -34,11 +32,72 @@ def main():
     labels = pd.read_csv(target_file)
     extra_labels = pd.read_csv(noscore_target)
 
+    test_features = pd.read_csv('../lish-moa/test_features.csv')
+
+    #####FE there
+
+    GENES = [col for col in features.columns if col.startswith('g-')]
+    CELLS = [col for col in features.columns if col.startswith('c-')]
 
 
+
+    def pca_fe(train_feature,test_features):
+        n_comp = 50
+        data = pd.concat([pd.DataFrame(train_feature[GENES]), pd.DataFrame(test_features[GENES])])
+        data2 = (PCA(n_components=n_comp, random_state=42).fit_transform(data[GENES]))
+        train2 = data2[:train_feature.shape[0]];
+        test2 = data2[-test_features.shape[0]:]
+
+        train2 = pd.DataFrame(train2, columns=[f'pca_G-{i}' for i in range(n_comp)])
+        test2 = pd.DataFrame(test2, columns=[f'pca_G-{i}' for i in range(n_comp)])
+
+        # drop_cols = [f'c-{i}' for i in range(n_comp,len(GENES))]
+        train_feature = pd.concat((train_feature, train2), axis=1)
+        test_features = pd.concat((test_features, test2), axis=1)
+
+        data = pd.concat([pd.DataFrame(train_feature[CELLS]), pd.DataFrame(test_features[CELLS])])
+        data2 = (PCA(n_components=n_comp, random_state=42).fit_transform(data[CELLS]))
+        train2 = data2[:train_feature.shape[0]];
+        test2 = data2[-test_features.shape[0]:]
+
+        train2 = pd.DataFrame(train2, columns=[f'pca_G-{i}' for i in range(n_comp)])
+        test2 = pd.DataFrame(test2, columns=[f'pca_G-{i}' for i in range(n_comp)])
+
+        # drop_cols = [f'c-{i}' for i in range(n_comp,len(GENES))]
+        train_feature = pd.concat((train_feature, train2), axis=1)
+        test_features = pd.concat((test_features, test2), axis=1)
+
+        return train_feature,test_features
+
+    def feature_selection(train_features,test_features):
+        var_thresh = VarianceThreshold(threshold=0.5)
+        data = train_features.append(test_features)
+        data_transformed = var_thresh.fit_transform(data.iloc[:, 4:])
+
+        train_features_transformed = data_transformed[: train_features.shape[0]]
+        test_features_transformed = data_transformed[-test_features.shape[0]:]
+
+        train_features = pd.DataFrame(train_features[['sig_id', 'cp_type', 'cp_time', 'cp_dose']].values.reshape(-1, 4), \
+                                      columns=['sig_id', 'cp_type', 'cp_time', 'cp_dose'])
+
+        train_features = pd.concat([train_features, pd.DataFrame(train_features_transformed)], axis=1)
+
+        test_features = pd.DataFrame(test_features[['sig_id', 'cp_type', 'cp_time', 'cp_dose']].values.reshape(-1, 4), \
+                                     columns=['sig_id', 'cp_type', 'cp_time', 'cp_dose'])
+
+        test_features = pd.concat([test_features, pd.DataFrame(test_features_transformed)], axis=1)
+
+        return train_features,test_features
+    ####
+
+    logger.info('prccess with pca')
+    features,test_features=pca_fe(features,test_features)
+    logger.info('prccess with feature selection')
+    features, test_features=feature_selection(features,test_features)
+    print(features.shape)
     losscolector=[]
     folds=[0,1,2,3,4]
-    seeds=[40,41,42,43,44]
+    seeds=[42]
 
     n_fold=len(folds)
 
