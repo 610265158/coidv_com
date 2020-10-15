@@ -97,7 +97,7 @@ def main():
     print(features.shape)
     losscolector=[]
     folds=[0,1,2,3,4]
-    seeds=[42]
+    seeds=[40,41,42,43,44]
 
     n_fold=len(folds)
 
