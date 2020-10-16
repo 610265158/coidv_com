@@ -118,10 +118,7 @@ class Complexer(nn.Module):
 
 if __name__=='__main__':
     model=Complexer()
-
-    image_data=torch.zeros(size=[12,1,107,107])
-    test_data=torch.zeros(size=[12,107,3])
-
-    res=model(image_data,test_data)
+    data=torch.zeros(size=[12,940])
+    res=model(data)
 
     print(res.shape)
