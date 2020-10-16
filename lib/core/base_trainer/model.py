@@ -1,13 +1,6 @@
-import sys
-sys.path.append('.')
+
 import torch
-import torch.nn.functional as F
 import torch.nn as nn
-from torch.nn import Parameter
-
-from efficientnet_pytorch import EfficientNet
-from train_config import config as cfg
-
 
 # A memory-efficient implementation of Swish function
 class SwishImplementation(torch.autograd.Function):
@@ -71,10 +64,10 @@ class ResBlock(nn.Module):
 
 class Complexer(nn.Module):
 
-    def __init__(self, num_features=944, num_targets=206, hidden_size=512):
+    def __init__(self, num_features=940, num_targets=206, hidden_size=512):
         super(Complexer, self).__init__()
         self.batch_norm1 = nn.BatchNorm1d(num_features)
-        self.dropout1 = nn.Dropout(0.3)
+        self.dropout1 = nn.Dropout(0.2)
         self.dense1 =nn.Sequential(nn.Linear(num_features, hidden_size,bias=False),
                                    nn.BatchNorm1d(hidden_size,momentum=BN_MOMENTUM,eps=BN_EPS),
                                    ACT_FUNCTION(),
