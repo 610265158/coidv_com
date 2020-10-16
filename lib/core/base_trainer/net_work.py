@@ -126,7 +126,7 @@ class Train(object):
                       m.bias.requires_grad = False
       for step in range(self.train_ds.size):
 
-        if epoch_num<10:
+        if epoch_num<15:
             ###excute warm up in the first epoch
             if self.warup_step>0:
                 if self.iter_num < self.warup_step:
