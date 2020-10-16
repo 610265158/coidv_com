@@ -143,6 +143,9 @@ class AlaskaDataIter():
         self.raw_data_set_size = self.data.shape[0]  ##decided by self.parse_file
 
 
+
+        self.get_the_thres(self.data,target)
+
     def __call__(self, *args, **kwargs):
         idxs = np.arange(self.data.shape[0])
 
@@ -159,6 +162,24 @@ class AlaskaDataIter():
 
         return self.raw_data_set_size
 
+
+
+
+    def get_the_thres(self,feature,target):
+
+        take = np.sum(target, axis=1)
+
+        posotive_index = (take > 0)
+
+        data = feature[posotive_index]
+        self.pos_max = np.max(data, axis=0)
+        self.pos_min = np.min(data, axis=0)
+
+        neg_index = (take == 0)
+
+        data = feature[neg_index]
+        self.neg_max = np.max(data, axis=0)
+        self.neg_min = np.min(data, axis=0)
 
     def parse_file(self,feature,target,extra_target):
 
@@ -234,6 +255,7 @@ class AlaskaDataIter():
         return x*mask
 
 
+
     def get_one_sample(self, index, is_training):
         data=self.data[index]
 
@@ -247,6 +269,11 @@ class AlaskaDataIter():
                 data=self.jitter(data)
             if random.uniform(0,1)<0.5:
                 data=self.cutout(data)
+
+            if np.sum(target)>0:
+                data=np.clip(data,self.pos_min,self.pos_max)
+            else:
+                data=np.clip(data,self.neg_min,self.neg_max)
 
             data[3:3+772]=np.clip(data[3:3+772],-10,10)
             data[775:875] = np.clip(data[775:875], -10, 6)
