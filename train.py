@@ -1,4 +1,5 @@
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
+from sklearn.cluster import KMeans
 
 from lib.core.base_trainer.net_work import Train
 
@@ -35,65 +36,34 @@ def main():
     test_features = pd.read_csv('../lish-moa/test_features.csv')
 
     #####FE there
+    def fe_pca(train, test, n_components_g=50, n_components_c=15, SEED=123):
 
-    GENES = [col for col in features.columns if col.startswith('g-')]
-    CELLS = [col for col in features.columns if col.startswith('c-')]
+        features_g = list(train.columns[4:776])
+        features_c = list(train.columns[776:876])
+
+        def create_pca(train, test, features, kind='g', n_components=n_components_g):
+            train_ = train[features].copy()
+            test_ = test[features].copy()
+            data = pd.concat([train_, test_], axis=0)
+            pca = PCA(n_components=n_components, random_state=SEED)
+            data = pca.fit_transform(data)
+            columns = [f'pca_{kind}{i + 1}' for i in range(n_components)]
+            data = pd.DataFrame(data, columns=columns)
+            train_ = data.iloc[:train.shape[0]]
+            test_ = data.iloc[train.shape[0]:].reset_index(drop=True)
+            train = pd.concat([train, train_], axis=1)
+            test = pd.concat([test, test_], axis=1)
+            return train, test
+
+        train, test = create_pca(train, test, features_g, kind='g', n_components=n_components_g)
+        train, test = create_pca(train, test, features_c, kind='c', n_components=n_components_c)
+        return train, test
 
 
+    features, test_features = fe_pca(features, test_features, n_components_g=50, n_components_c=15, SEED=42)
 
-    def pca_fe(train_feature,test_features):
-        n_comp = 50
-        data = pd.concat([pd.DataFrame(train_feature[GENES]), pd.DataFrame(test_features[GENES])])
-        data2 = (PCA(n_components=n_comp, random_state=42).fit_transform(data[GENES]))
-        train2 = data2[:train_feature.shape[0]];
-        test2 = data2[-test_features.shape[0]:]
-
-        train2 = pd.DataFrame(train2, columns=[f'pca_G-{i}' for i in range(n_comp)])
-        test2 = pd.DataFrame(test2, columns=[f'pca_G-{i}' for i in range(n_comp)])
-
-        # drop_cols = [f'c-{i}' for i in range(n_comp,len(GENES))]
-        train_feature = pd.concat((train_feature, train2), axis=1)
-        test_features = pd.concat((test_features, test2), axis=1)
-
-        data = pd.concat([pd.DataFrame(train_feature[CELLS]), pd.DataFrame(test_features[CELLS])])
-        data2 = (PCA(n_components=n_comp, random_state=42).fit_transform(data[CELLS]))
-        train2 = data2[:train_feature.shape[0]];
-        test2 = data2[-test_features.shape[0]:]
-
-        train2 = pd.DataFrame(train2, columns=[f'pca_G-{i}' for i in range(n_comp)])
-        test2 = pd.DataFrame(test2, columns=[f'pca_G-{i}' for i in range(n_comp)])
-
-        # drop_cols = [f'c-{i}' for i in range(n_comp,len(GENES))]
-        train_feature = pd.concat((train_feature, train2), axis=1)
-        test_features = pd.concat((test_features, test2), axis=1)
-
-        return train_feature,test_features
-
-    def feature_selection(train_features,test_features):
-        var_thresh = VarianceThreshold(threshold=0.5)
-        data = train_features.append(test_features)
-        data_transformed = var_thresh.fit_transform(data.iloc[:, 4:])
-
-        train_features_transformed = data_transformed[: train_features.shape[0]]
-        test_features_transformed = data_transformed[-test_features.shape[0]:]
-
-        train_features = pd.DataFrame(train_features[['sig_id', 'cp_type', 'cp_time', 'cp_dose']].values.reshape(-1, 4), \
-                                      columns=['sig_id', 'cp_type', 'cp_time', 'cp_dose'])
-
-        train_features = pd.concat([train_features, pd.DataFrame(train_features_transformed)], axis=1)
-
-        test_features = pd.DataFrame(test_features[['sig_id', 'cp_type', 'cp_time', 'cp_dose']].values.reshape(-1, 4), \
-                                     columns=['sig_id', 'cp_type', 'cp_time', 'cp_dose'])
-
-        test_features = pd.concat([test_features, pd.DataFrame(test_features_transformed)], axis=1)
-
-        return train_features,test_features
     ####
 
-    logger.info('prccess with pca')
-    features,test_features=pca_fe(features,test_features)
-    logger.info('prccess with feature selection')
-    features, test_features=feature_selection(features,test_features)
     print(features.shape)
     losscolector=[]
     folds=[0,1,2,3,4]
