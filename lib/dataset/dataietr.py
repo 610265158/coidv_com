@@ -221,17 +221,25 @@ class AlaskaDataIter():
     def single_map_func(self, index, is_training):
         """Data augmentation function."""
         ####customed here
+        data = self.data[index]
 
-        data,target,extra_target=self.get_one_sample(index,is_training)
+        target = self.label[index]
+        extra_target = self.extra_label[index]
 
+        if is_training:
 
-        # if is_training:
-        #
-        #     if random.uniform(0,1)<0.5:
-        #
-        #
-        #         data[:cfg.MODEL.pre_length,:]=data[:cfg.MODEL.pre_length][::-1,:]
-        #         label[:cfg.MODEL.pre_length,:]=label[:cfg.MODEL.pre_length][::-1,:]
+            if random.uniform(0, 1) < 0.5:
+                data = self.jitter(data)
+            if random.uniform(0, 1) < 0.5:
+                data = self.cutout(data)
+
+            if np.sum(target) > 0:
+                data = np.clip(data, self.pos_min, self.pos_max)
+            else:
+                data = np.clip(data, self.neg_min, self.neg_max)
+
+            data[3:3 + 772] = np.clip(data[3:3 + 772], -10, 10)
+            data[775:875] = np.clip(data[775:875], -10, 6)
 
         return data,target,extra_target
 
@@ -255,26 +263,3 @@ class AlaskaDataIter():
         return x*mask
 
 
-
-    def get_one_sample(self, index, is_training):
-        data=self.data[index]
-
-
-        target=self.label[index]
-        extra_target=self.extra_label[index]
-
-        if is_training:
-
-            if random.uniform(0,1)<0.5:
-                data=self.jitter(data)
-            if random.uniform(0,1)<0.5:
-                data=self.cutout(data)
-
-            if np.sum(target)>0:
-                data=np.clip(data,self.pos_min,self.pos_max)
-            else:
-                data=np.clip(data,self.neg_min,self.neg_max)
-
-            data[3:3+772]=np.clip(data[3:3+772],-10,10)
-            data[775:875] = np.clip(data[775:875], -10, 6)
-        return data,target,extra_target
