@@ -1,5 +1,7 @@
+import torch
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 from sklearn.cluster import KMeans
+from torch import nn
 
 from lib.core.base_trainer.net_work import Train
 
@@ -142,7 +144,34 @@ def main():
     for k,loss_and_model in enumerate(losscolector):
         print('fold %d : loss %.5f modelname: %s'%(k,loss_and_model[0],loss_and_model[1]))
         avg_loss+=loss_and_model[0]
-    print('average loss is ',avg_loss/(len(losscolector)))
+    print('simple,average loss is ',avg_loss/(len(losscolector)))
+
+    ###blend
+    blend_res=[]
+    device= torch.device("cuda" if torch.cuda.is_available() else 'cpu')
+    criterion=nn.BCELoss().to(device)
+    model = Complexer()
+
+    for k, loss_and_model in enumerate(losscolector):
+        print('fold %d : loss %.5f modelname: %s' % (k, loss_and_model[0], loss_and_model[1]))
+        avg_loss += loss_and_model[0]
+        model.load_state_dict(torch.load(loss_and_model[1], map_location=device))
+        model.to(device)
+        model.eval()
+        with torch.no_grad():
+            feature, target1, target2 = val_ds()
+            feature = torch.from_numpy(feature).to(device).float()
+            target1 = torch.from_numpy(target1).to(device).float()
+            target2 = torch.from_numpy(target2).to(device).float()
+
+            output = model(feature)
+            blend_res.append(torch.nn.functional.sigmoid(output))
+
+    blend_res = torch.stack(blend_res, dim=0)
+    blend_res = torch.mean(blend_res, dim=0)
+
+    blend_loss=criterion(blend_res,target1)
+    print('blend,average loss is ',blend_loss)
 
 
 if __name__=='__main__':
