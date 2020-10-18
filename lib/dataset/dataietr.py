@@ -221,7 +221,7 @@ class AlaskaDataIter():
     def single_map_func(self, index, is_training):
         """Data augmentation function."""
         ####customed here
-        data = self.data[index]
+        data = self.data[index].copy()
 
         target = self.label[index]
         extra_target = self.extra_label[index]
@@ -229,17 +229,19 @@ class AlaskaDataIter():
         if is_training:
 
             if random.uniform(0, 1) < 0.5:
-                data = self.jitter(data)
+                data[3:] = self.jitter(data[3:])
             if random.uniform(0, 1) < 0.5:
-                data = self.cutout(data)
+                data[3:] = self.cutout(data[3:])
 
             if np.sum(target) > 0:
-                data = np.clip(data, self.pos_min, self.pos_max)
+                data[3:] = np.clip(data[3:], self.pos_min[3:], self.pos_max[3:])
             else:
-                data = np.clip(data, self.neg_min, self.neg_max)
+                data[3:] = np.clip(data[3:], self.neg_min[3:], self.neg_max[3:])
 
-            data[3:3 + 772] = np.clip(data[3:3 + 772], -10, 10)
-            data[775:875] = np.clip(data[775:875], -10, 6)
+            # data[3:3 + 772] = np.clip(data[3:3 + 772], -10, 10)
+            # data[775:875] = np.clip(data[775:875], -10, 6)
+
+
 
         return data,target,extra_target
 
