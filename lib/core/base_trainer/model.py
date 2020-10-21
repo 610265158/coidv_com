@@ -91,11 +91,10 @@ class Complexer(nn.Module):
 
         self.dense3 = nn.Linear(hidden_size, hidden_size)
 
-        self.dense4 = nn.Linear(hidden_size*2, num_targets)
+        self.dense4 = nn.Linear(hidden_size*3, num_targets)
 
-        self.dense5 = nn.Linear(hidden_size * 2, num_extra_targets)
+        self.dense5 = nn.Linear(hidden_size * 3, num_extra_targets)
     def forward(self, x):
-
 
         x = self.batch_norm1(x)
         x = self.dropout1(x)
@@ -109,7 +108,7 @@ class Complexer(nn.Module):
         x=x.unsqueeze(dim=1)
         yy=self.max_p(x)
         zz=self.mean_p(x)
-        x=torch.cat([yy,zz],dim=2)
+        x=torch.cat([yy,zz,x],dim=2)
         x=x.squeeze(1)
 
 
