@@ -48,6 +48,10 @@ def main():
 
     n_fold=len(folds)
 
+
+
+    raw_features=features
+    raw_test_features=test_features
     for cur_seed in seeds:
         seed_everything(cur_seed)
 
@@ -74,7 +78,7 @@ def main():
             train, test = create_pca(train, test, features_c, kind='c', n_components=n_components_c)
             return train, test
 
-        features, test_features = fe_pca(features, test_features, n_components_g=50, n_components_c=15, SEED=cur_seed)
+        features, test_features = fe_pca(raw_features, raw_test_features, n_components_g=50, n_components_c=15, SEED=cur_seed)
 
         #### 5 fols split
         target_cols = [c for c in labels.columns if c not in ['sig_id']]
