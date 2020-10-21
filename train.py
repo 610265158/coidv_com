@@ -38,31 +38,6 @@ def main():
     test_features = pd.read_csv('../lish-moa/test_features.csv')
 
     #####FE there
-    def fe_pca(train, test, n_components_g=50, n_components_c=15, SEED=123):
-
-        features_g = list(train.columns[4:776])
-        features_c = list(train.columns[776:876])
-
-        def create_pca(train, test, features, kind='g', n_components=n_components_g):
-            train_ = train[features].copy()
-            test_ = test[features].copy()
-            data = pd.concat([train_, test_], axis=0)
-            pca = PCA(n_components=n_components, random_state=SEED)
-            data = pca.fit_transform(data)
-            columns = [f'pca_{kind}{i + 1}' for i in range(n_components)]
-            data = pd.DataFrame(data, columns=columns)
-            train_ = data.iloc[:train.shape[0]]
-            test_ = data.iloc[train.shape[0]:].reset_index(drop=True)
-            train = pd.concat([train, train_], axis=1)
-            test = pd.concat([test, test_], axis=1)
-            return train, test
-
-        train, test = create_pca(train, test, features_g, kind='g', n_components=n_components_g)
-        train, test = create_pca(train, test, features_c, kind='c', n_components=n_components_c)
-        return train, test
-
-
-    features, test_features = fe_pca(features, test_features, n_components_g=50, n_components_c=15, SEED=42)
 
     ####
 
@@ -75,6 +50,32 @@ def main():
 
     for cur_seed in seeds:
         seed_everything(cur_seed)
+
+        def fe_pca(train, test, n_components_g=50, n_components_c=15, SEED=123):
+
+            features_g = list(train.columns[4:776])
+            features_c = list(train.columns[776:876])
+
+            def create_pca(train, test, features, kind='g', n_components=n_components_g):
+                train_ = train[features].copy()
+                test_ = test[features].copy()
+                data = pd.concat([train_, test_], axis=0)
+                pca = PCA(n_components=n_components, random_state=SEED)
+                data = pca.fit_transform(data)
+                columns = [f'pca_{kind}{i + 1}' for i in range(n_components)]
+                data = pd.DataFrame(data, columns=columns)
+                train_ = data.iloc[:train.shape[0]]
+                test_ = data.iloc[train.shape[0]:].reset_index(drop=True)
+                train = pd.concat([train, train_], axis=1)
+                test = pd.concat([test, test_], axis=1)
+                return train, test
+
+            train, test = create_pca(train, test, features_g, kind='g', n_components=n_components_g)
+            train, test = create_pca(train, test, features_c, kind='c', n_components=n_components_c)
+            return train, test
+
+        features, test_features = fe_pca(features, test_features, n_components_g=50, n_components_c=15, SEED=cur_seed)
+
         #### 5 fols split
         target_cols = [c for c in labels.columns if c not in ['sig_id']]
         features['fold'] = -1
