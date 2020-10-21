@@ -169,7 +169,7 @@ def main():
             target1 = torch.from_numpy(target1).to(device).float()
             target2 = torch.from_numpy(target2).to(device).float()
 
-            output = model(feature)
+            output,_ = model(feature)
             blend_res.append(torch.nn.functional.sigmoid(output))
 
     blend_res = torch.stack(blend_res, dim=0)
