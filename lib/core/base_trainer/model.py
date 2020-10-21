@@ -64,7 +64,7 @@ class ResBlock(nn.Module):
 
 class Complexer(nn.Module):
 
-    def __init__(self, num_features=940, num_targets=206, hidden_size=512):
+    def __init__(self, num_features=940, num_targets=206,num_extra_targets=402, hidden_size=512):
         super(Complexer, self).__init__()
         self.batch_norm1 = nn.BatchNorm1d(num_features)
         self.dropout1 = nn.Dropout(0.2)
@@ -92,6 +92,8 @@ class Complexer(nn.Module):
         self.dense3 = nn.Linear(hidden_size, hidden_size)
 
         self.dense4 = nn.Linear(hidden_size*2, num_targets)
+
+        self.dense5 = nn.Linear(hidden_size * 2, num_extra_targets)
     def forward(self, x):
 
 
@@ -111,8 +113,9 @@ class Complexer(nn.Module):
         x=x.squeeze(1)
 
 
-        x = self.dense4(x)
-        return x
+        xx = self.dense4(x)
+        yy = self.dense5(x)
+        return xx,yy
 
 
 

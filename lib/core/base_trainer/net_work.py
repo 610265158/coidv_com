@@ -144,8 +144,10 @@ class Train(object):
         target2 = torch.from_numpy(target2).to(self.device).float()
         batch_size = feature.shape[0]
 
-        output = self.model(feature)
-        loss=self.train_criterion(output,target1)
+        output,output2 = self.model(feature)
+        loss1=self.train_criterion(output,target1)
+        loss2 = self.train_criterion(output2, target2)
+        loss=loss1+loss2
         summary_loss.update(loss.detach().item(), batch_size)
 
         self.optimizer.zero_grad()
@@ -199,7 +201,7 @@ class Train(object):
                 target2 = torch.from_numpy(target2).to(self.device).float()
                 batch_size = feature.shape[0]
 
-                output = self.model(feature)
+                output,_ = self.model(feature)
                 loss = self.criterion(output, target1)
                 summary_loss.update(loss.detach().item(), batch_size)
 
