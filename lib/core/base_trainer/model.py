@@ -64,7 +64,7 @@ class ResBlock(nn.Module):
 
 class Complexer(nn.Module):
 
-    def __init__(self, num_features=940, num_targets=206,num_extra_targets=402, hidden_size=512):
+    def __init__(self, num_features=875, num_targets=206,num_extra_targets=402, hidden_size=512):
         super(Complexer, self).__init__()
         self.batch_norm1 = nn.BatchNorm1d(num_features)
         self.dropout1 = nn.Dropout(0.2)
