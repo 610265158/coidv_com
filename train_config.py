@@ -14,7 +14,7 @@ config.TRAIN.prefetch_size = 15
 ############
 
 config.TRAIN.num_gpu = 1
-config.TRAIN.batch_size = 64
+config.TRAIN.batch_size = 128
 config.TRAIN.log_interval = 100                  ##10 iters for a log msg
 config.TRAIN.test_interval = 1
 config.TRAIN.epoch = 150
@@ -48,7 +48,7 @@ config.DATA.filter_ctl_vehicle=True
 
 
 ####mainly hyper params
-config.TRAIN.warmup_step=3000
+config.TRAIN.warmup_step=1500
 config.TRAIN.opt='Adamw'
 config.TRAIN.SWA=-1    ### -1 use no swa   from which epoch start SWA
 config.MODEL.label_smooth=0.05
@@ -60,7 +60,7 @@ config.MODEL.pretrained_model=None
 config.MODEL.freeze_bn=False
 config.MODEL.freeze_bn_affine=False
 
-config.MODEL.ema=False
+config.MODEL.ema=True
 config.MODEL.focal_loss=False
 config.SEED=42
 
