@@ -7,7 +7,7 @@ import numpy as np
 import copy
 import matplotlib.pyplot as plt
 from lib.helper.logger import logger
-from tensorpack.dataflow import DataFromGenerator, BatchData, MultiProcessPrefetchData, PrefetchDataZMQ
+from tensorpack.dataflow import DataFromGenerator, BatchData, MultiProcessPrefetchData, PrefetchDataZMQ, RepeatedData
 import time
 
 
@@ -93,6 +93,7 @@ class DataIter():
     def build_iter(self):
 
         ds = DataFromGenerator(self.generator)
+        ds = RepeatedData(ds, -1)
         ds = BatchData(ds, self.batch_size)
         if not cfg.TRAIN.vis:
             ds = PrefetchDataZMQ(ds, self.process_num)
@@ -102,12 +103,8 @@ class DataIter():
 
     def __call__(self, *args, **kwargs):
 
-        try:
-            one_batch=next(self.ds)
-        except:
-            
-            self.ds =self.build_iter()
-            one_batch = next(self.ds)
+
+        one_batch=next(self.ds)
 
         image,label1,label2=one_batch[0],one_batch[1],one_batch[2]
 
