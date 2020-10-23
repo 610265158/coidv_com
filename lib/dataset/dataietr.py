@@ -129,9 +129,12 @@ class AlaskaDataIter():
     def __init__(self,feature,target,extra_target, training_flag=True,shuffle=True):
 
 
+
+        ###prevent modify
+        feature=feature.copy()
+
         self.training_flag = training_flag
         self.shuffle = shuffle
-
 
         data,target,extra_target=self.parse_file(feature,target,extra_target)
 
