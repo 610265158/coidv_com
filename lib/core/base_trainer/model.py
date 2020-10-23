@@ -63,23 +63,6 @@ class ResBlock(nn.Module):
         return self.act(x+xx)
 
 
-class AUG(nn.Module):
-    def __init__(self, ):
-        super(AUG, self).__init__()
-
-
-
-        self.drop_g=nn.Dropout(0.3)
-
-        self.drop_c=nn.Dropout(0.2)
-
-    def forward(self, x):
-
-        x[:,3:3+772]=self.drop_g(x[:,3:3+772])
-        x[:,775:875]=self.drop_c(x[:,775:875])
-
-
-        return x
 
 
 class Complexer(nn.Module):
@@ -88,7 +71,7 @@ class Complexer(nn.Module):
         super(Complexer, self).__init__()
 
 
-        self.aug=AUG()
+
         self.dense1 =nn.Sequential(nn.Linear(num_features, hidden_size,bias=False),
                                    nn.BatchNorm1d(hidden_size,momentum=BN_MOMENTUM,eps=BN_EPS),
                                    ACT_FUNCTION(),
@@ -117,12 +100,10 @@ class Complexer(nn.Module):
         self.dense5 = nn.Linear(hidden_size * 3, num_extra_targets)
     def forward(self, x):
 
-        x  =self.aug(x)
-        
         x = self.dense1(x)
-        x =self.dense2(x)
+        x = self.dense2(x)
 
-        x=self.att(x)
+        x = self.att(x)
         x = self.dense3(x)
 
 
