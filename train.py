@@ -48,12 +48,13 @@ def main():
 
     print(train_features.shape)
     losscolector=[]
-    folds=[0,1,2,3,4]
+    folds=[0,1,2,3,4,5]
     seeds=[40,41,42,43,44]
 
     n_fold=len(folds)
 
-    model_dicts=[{'name':'resnetlike','func':Complexer}]
+    model_dicts=[{'name':'resnetlike','func':Complexer},
+                 {'name':'densenetlike','func':Denseplexer}]
 
     for model_dict in model_dicts:
         for cur_seed in seeds:
@@ -81,28 +82,27 @@ def main():
                 ###build dataset
 
                 train_ind = features[features['fold'] != fold].index.to_list()
-                train_features=features.iloc[train_ind]
-                train_target = labels.iloc[train_ind]
-                train_extra_Target = extra_labels.iloc[train_ind]
+                train_features_=features.iloc[train_ind].copy()
+                train_target_ = labels.iloc[train_ind].copy()
+                train_extra_Target_ = extra_labels.iloc[train_ind].copy()
 
                 val_ind=features.loc[features['fold'] == fold].index.to_list()
-                val_features = features.iloc[val_ind]
-                val_target = labels.iloc[val_ind]
-                val_extra_Target = extra_labels.iloc[val_ind]
+                val_features_ = features.iloc[val_ind].copy()
+                val_target_ = labels.iloc[val_ind].copy()
+                val_extra_Target_ = extra_labels.iloc[val_ind].copy()
 
 
-                train_ds=DataIter(train_features,train_target,train_extra_Target,shuffle=True,training_flag=True)
-                val_ds=DataIter(val_features,val_target,val_extra_Target,shuffle=False,training_flag=False)
+                train_ds=DataIter(train_features_,train_target_,train_extra_Target_,shuffle=True,training_flag=True)
+                val_ds=DataIter(val_features_,val_target_,val_extra_Target_,shuffle=False,training_flag=False)
 
                 ### build model
 
                 model=model_dict['func']()
 
                 model_name=str(model_dict['name']+str(cur_seed))
+
+
                 ###build trainer
-
-
-
                 trainer = Train(model_name=model_name,model=model,train_ds=train_ds,val_ds=val_ds,fold=fold)
 
                 print('it is here')
