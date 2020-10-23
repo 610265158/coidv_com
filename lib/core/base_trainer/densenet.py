@@ -50,10 +50,10 @@ class DenseBlock(nn.Module):
     def __init__(self, input_dim=512, output_dim=512):
         super(DenseBlock, self).__init__()
 
-        self.att=nn.Sequential(nn.Linear(input_dim, output_dim//2,bias=False),
-                               nn.BatchNorm1d(output_dim//2,momentum=BN_MOMENTUM,eps=BN_EPS),
+        self.att=nn.Sequential(nn.Linear(input_dim, output_dim//4,bias=False),
+                               nn.BatchNorm1d(output_dim//4,momentum=BN_MOMENTUM,eps=BN_EPS),
                                ACT_FUNCTION(),
-                               nn.Linear(output_dim//2, output_dim, bias=False),
+                               nn.Linear(output_dim//4, output_dim, bias=False),
                                nn.BatchNorm1d(output_dim, momentum=BN_MOMENTUM,eps=BN_EPS),
                                ACT_FUNCTION()
                                )
@@ -73,16 +73,16 @@ class Denseplexer(nn.Module):
         self.dense1 =nn.Sequential(nn.Linear(num_features, hidden_size,bias=False),
                                    nn.BatchNorm1d(hidden_size,momentum=BN_MOMENTUM,eps=BN_EPS),
                                    ACT_FUNCTION(),
-                                   nn.Dropout(0.2),
+                                   nn.Dropout(0.5),
                                    )
 
         self.dense2 =nn.Sequential(DenseBlock(hidden_size,hidden_size),
-                                   nn.Dropout(0.3),
+                                   nn.Dropout(0.5),
                                    nn.Linear(2*hidden_size, hidden_size, bias=False),
                                    nn.BatchNorm1d(hidden_size, momentum=BN_MOMENTUM, eps=BN_EPS),
                                    ACT_FUNCTION(),
                                    DenseBlock(hidden_size, hidden_size),
-                                   nn.Dropout(0.3),
+                                   nn.Dropout(0.5),
                                    nn.Linear(2 * hidden_size, hidden_size, bias=False),
                                    nn.BatchNorm1d(hidden_size, momentum=BN_MOMENTUM, eps=BN_EPS),
                                    ACT_FUNCTION(),
