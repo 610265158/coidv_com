@@ -19,7 +19,7 @@ class BCEWithLogitsLoss(nn.Module):
 
     def forward(self,input,target):
         smooth_target = (
-                target * (1 - self.smooth) + 0.5 * self.smooth)
+                target * (1 - 2*self.smooth) +  self.smooth)
 
         loss=F.binary_cross_entropy_with_logits(input,smooth_target)
 
