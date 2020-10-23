@@ -102,8 +102,12 @@ class DataIter():
 
     def __call__(self, *args, **kwargs):
 
-
-        one_batch=next(self.ds)
+        try:
+            one_batch=next(self.ds)
+        except:
+            
+            self.ds =self.build_iter()
+            one_batch = next(self.ds)
 
         image,label1,label2=one_batch[0],one_batch[1],one_batch[2]
 
