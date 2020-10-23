@@ -44,7 +44,7 @@ config.MODEL.image_only=False
 config.MODEL.pre_length=68         ##68:107, 91:130
 config.DATA = edict()
 
-config.DATA.filter_ctl_vehicle=True
+config.DATA.filter_ctl_vehicle=False
 
 
 ####mainly hyper params
