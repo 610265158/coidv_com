@@ -44,14 +44,34 @@ dose=np.array(train_features['cp_dose'].values=='D1',dtype=np.float32)
 train_features['cp_dose_encoded']=dose
 
 
-train_features = train_features.drop(['sig_id','cp_type','cp_dose'],axis=1).values
+train_features = train_features.drop(['sig_id','cp_type','cp_dose'],axis=1)
 
-labels_train = labels_train.drop('sig_id',axis=1).values
-extra_labels_train=extra_labels_train.drop('sig_id',axis=1).values
+labels_train = labels_train.drop('sig_id',axis=1)
+extra_labels_train=extra_labels_train.drop('sig_id',axis=1)
 
-if np.isnan(train_features).any():
-    print('there is nanananananan')
 
 print(train_features.shape)
 print(labels_train.shape)
 print(extra_labels_train.shape)
+
+
+
+print(labels_train.columns.values)
+
+label_cnt_dict={}
+
+
+for item in labels_train.columns.values:
+    label_cnt_dict[item]=np.sum(labels_train[item])
+
+
+label_cnt_dict_sorted=sorted(label_cnt_dict.items(), key=lambda x: x[1],reverse=True)
+
+
+for k ,v in label_cnt_dict_sorted:
+    print('%-30s: %d sample'%(k,v))
+
+
+
+
+
