@@ -53,7 +53,7 @@ def main():
 
     n_fold=len(folds)
 
-    model_dicts=[{'model_name':'resnetlike','func':Complexer}]
+    model_dicts=[{'name':'resnetlike','func':Complexer}]
 
     for model_dict in model_dicts:
         for cur_seed in seeds:
