@@ -234,9 +234,9 @@ class AlaskaDataIter():
                 data[3:]=self.cutout(data[3:])
 
             if np.sum(target)>0:
-                data[3:]=np.clip(data[3:],self.pos_min,self.pos_max)
+                data[3:]=np.clip(data[3:],self.pos_min[3:],self.pos_max[3:])
             else:
-                data[3:] = np.clip(data[3:], self.neg_min, self.neg_max)
+                data[3:] = np.clip(data[3:], self.neg_min[3:], self.neg_max[3:])
                 
         return data,target,extra_target
 
