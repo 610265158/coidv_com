@@ -60,14 +60,14 @@ class Train(object):
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
 
     optimizer_grouped_parameters = [
-        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': cfg.TRAIN.weight_decay_factor},
+        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay':cfg.TRAIN.weight_decay_factor },
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
     ]
 
     if 'Adamw' in cfg.TRAIN.opt:
 
       self.optimizer = torch.optim.AdamW(self.model.parameters(),
-                                         lr=self.init_lr,eps=1.e-5)
+                                         lr=self.init_lr,eps=1.e-5,weight_decay=cfg.TRAIN.weight_decay_factor)
     else:
       self.optimizer = torch.optim.SGD(self.model.parameters(),
                                        lr=self.init_lr,
@@ -101,6 +101,66 @@ class Train(object):
     self.train_criterion=BCEWithLogitsLoss(smooth_eps=0.001).to(self.device)
     self.criterion = nn.BCEWithLogitsLoss().to(self.device)
 
+
+
+
+  def reset(self,model_name):
+
+      self.model_name= 'FINETUNE'+self.model_name
+      self.init_lr = 1e-5
+      self.warup_step = -1
+      self.epochs = 5
+      self.batch_size = cfg.TRAIN.batch_size
+      self.l2_regularization = cfg.TRAIN.weight_decay_factor
+
+      self.device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
+
+      state_dict = torch.load(model_name, map_location=self.device)
+      self.model.load_state_dict(state_dict, strict=False)
+
+      param_optimizer = list(self.model.named_parameters())
+      no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+
+      optimizer_grouped_parameters = [
+          {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
+           'weight_decay': cfg.TRAIN.weight_decay_factor},
+          {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+      ]
+
+      if 'Adamw' in cfg.TRAIN.opt:
+
+          self.optimizer = torch.optim.AdamW(self.model.parameters(),
+                                             lr=self.init_lr, eps=1.e-5, weight_decay=cfg.TRAIN.weight_decay_factor)
+      else:
+          self.optimizer = torch.optim.SGD(self.model.parameters(),
+                                           lr=self.init_lr,
+                                           momentum=0.9)
+      if cfg.TRAIN.SWA > 0:
+          ##use swa
+          self.optimizer = SWA(self.optimizer)
+
+      if cfg.TRAIN.mix_precision:
+          self.model, self.optimizer = amp.initialize(self.model, self.optimizer, opt_level="O1")
+
+      if cfg.TRAIN.num_gpu > 1:
+          self.model = nn.DataParallel(self.model)
+
+      self.ema = EMA(self.model, 0.99)
+
+      self.ema.register()
+      ###control vars
+      self.iter_num = 0
+
+
+      self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', patience=5, factor=0.5,
+                                                                  min_lr=1e-6, verbose=True)
+      # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR( self.optimizer, self.epochs,eta_min=1.e-6)
+
+      self.train_criterion = BCEWithLogitsLoss(smooth_eps=0.001).to(self.device)
+      self.criterion = nn.BCEWithLogitsLoss().to(self.device)
+
+
+
   def custom_loop(self):
     """Custom training and testing loop.
     Args:
@@ -131,6 +191,7 @@ class Train(object):
             if self.warup_step>0:
                 if self.iter_num < self.warup_step:
                     for param_group in self.optimizer.param_groups:
+
                         param_group['lr'] = self.iter_num / float(self.warup_step) * self.init_lr
                         lr = param_group['lr']
 

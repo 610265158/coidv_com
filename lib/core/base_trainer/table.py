@@ -1,6 +1,6 @@
 import  torch
 import torch.nn as nn
-from lib.core.base_trainer.tablenet.table import Tableplexe
+
 
 import torch
 from torch.nn import Linear, BatchNorm1d, ReLU
@@ -863,7 +863,7 @@ class Tableplexe(nn.Module):
 
         self.n_d: int = 32
         self.n_a: int = 32
-        self.n_steps: int = 3
+        self.n_steps: int = 1
         self.gamma: float = 1.3
         self.cat_idxs: []=[]
         self.cat_dims: []=[]

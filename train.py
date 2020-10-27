@@ -25,6 +25,7 @@ from sklearn.decomposition import PCA
 from sklearn.feature_selection import VarianceThreshold
 from lib.core.base_trainer.model import Complexer
 from lib.core.base_trainer.densenet import Denseplexer
+from lib.core.base_trainer.table import Tablenet
 def main():
 
 
@@ -49,12 +50,15 @@ def main():
     print(train_features.shape)
     losscolector=[]
     folds=[0,1,2,3,4,5,6,7,8,9]
-    seeds=[40,41,42,43,44,45,46,47,48]
+    seeds=[40,41,42,43,44,45,46,47,48,49,50]
 
     n_fold=len(folds)
 
     model_dicts=[{'name':'resnetlike','func':Complexer},
-                 {'name':'densenetlike','func':Denseplexer}]
+                 {'name':'densenetlike','func':Denseplexer},
+                 {'name':'resnetlike','func':Tablenet}]
+
+
     #### 5 fols split
     features = train_features.copy()
     target_cols = [c for c in labels.columns if c not in ['sig_id']]
@@ -76,11 +80,7 @@ def main():
                 seed_everything(cur_seed)
                 logger.info('train with seed %d' % (cur_seed))
 
-
-
-
                 ###build dataset
-
                 train_ind = features[features['fold'] != fold].index.to_list()
                 train_features_=features.iloc[train_ind].copy()
                 train_target_ = labels.iloc[train_ind].copy()
@@ -104,30 +104,37 @@ def main():
 
                 ###build trainer
                 trainer = Train(model_name=model_name,model=model,train_ds=train_ds,val_ds=val_ds,fold=fold)
-
-                print('it is here')
-                if cfg.TRAIN.vis:
-                    print('show it, here')
-                    for step in range(train_ds.size):
-
-                        images,data, labels=train_ds()
-                        # images, mask, labels = cutmix_numpy(images, mask, labels, 0.5)
-
-
-                        print(images.shape)
-
-                        for i in range(images.shape[0]):
-                            example_image=np.array(images[i,0])
-
-                            example_label=np.array(labels[i])
-
-                            cv2.imshow('ss',example_image)
-                            cv2.waitKey(0)
-
-
-
                 ### train
-                loss,model=trainer.custom_loop()
+                loss,best_model=trainer.custom_loop()
+
+
+                if cfg.TRAIN.finetune_alldata:
+                    ### finetune with all data
+                    train_features_ = features.copy()
+                    train_target_ = labels.copy()
+                    train_extra_Target_ = extra_labels.copy()
+
+                    val_ind = features.loc[features['fold'] == fold].index.to_list()
+                    val_features_ = features.iloc[val_ind].copy()
+                    val_target_ = labels.iloc[val_ind].copy()
+                    val_extra_Target_ = extra_labels.iloc[val_ind].copy()
+
+                    train_ds = DataIter(train_features_, train_target_, train_extra_Target_, shuffle=True,
+                                        training_flag=True)
+                    val_ds = DataIter(val_features_, val_target_, val_extra_Target_, shuffle=False, training_flag=False)
+
+                    ### build model
+                    model = model_dict['func']()
+                    model_name = str(model_dict['name'] + str(cur_seed))
+
+                    ###build trainer
+                    trainer = Train(model_name=model_name, model=model, train_ds=train_ds, val_ds=val_ds, fold=fold)
+
+                    trainer.reset(best_model)
+
+                    loss, best_model = trainer.custom_loop()
+
+
                 losscolector.append([loss,model])
 
         avg_loss=0
