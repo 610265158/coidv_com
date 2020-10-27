@@ -56,7 +56,7 @@ def main():
 
     model_dicts=[{'name':'resnetlike','func':Complexer},
                  {'name':'densenetlike','func':Denseplexer},
-                 {'name':'resnetlike','func':Tablenet}]
+                 {'name':'tablenet','func':Tablenet}]
 
 
     #### 5 fols split
