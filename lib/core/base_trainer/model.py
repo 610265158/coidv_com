@@ -21,7 +21,7 @@ class MemoryEfficientSwish(nn.Module):
         return SwishImplementation.apply(x)
 
 
-BN_MOMENTUM=0.03
+BN_MOMENTUM=0.02
 BN_EPS=1e-5
 ACT_FUNCTION=MemoryEfficientSwish
 
@@ -70,8 +70,7 @@ class Complexer(nn.Module):
     def __init__(self, num_features=875, num_targets=206,num_extra_targets=402, hidden_size=512):
         super(Complexer, self).__init__()
 
-
-
+        self.bn_init = nn.BatchNorm1d(num_features, momentum=0.01, eps=BN_EPS)
         self.dense1 =nn.Sequential(nn.Linear(num_features, hidden_size,bias=False),
                                    nn.BatchNorm1d(hidden_size,momentum=BN_MOMENTUM,eps=BN_EPS),
                                    ACT_FUNCTION(),
@@ -99,7 +98,7 @@ class Complexer(nn.Module):
 
         self.dense5 = nn.Linear(hidden_size * 3, num_extra_targets)
     def forward(self, x):
-
+        x = self.bn_init(x)
         x = self.dense1(x)
         x = self.dense2(x)
 
