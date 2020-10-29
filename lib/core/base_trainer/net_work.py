@@ -83,7 +83,7 @@ class Train(object):
     if cfg.TRAIN.num_gpu>1:
         self.model=nn.DataParallel(self.model)
 
-    self.ema = EMA(self.model, 0.99)
+    self.ema = EMA(self.model, 0.997)
 
     self.ema.register()
     ###control vars
@@ -109,7 +109,7 @@ class Train(object):
       self.model_name= 'FINETUNE'+self.model_name
       self.init_lr = 1e-5
       self.warup_step = -1
-      self.epochs = 5
+      self.epochs = 15
       self.batch_size = cfg.TRAIN.batch_size
       self.l2_regularization = cfg.TRAIN.weight_decay_factor
 
@@ -145,7 +145,7 @@ class Train(object):
       if cfg.TRAIN.num_gpu > 1:
           self.model = nn.DataParallel(self.model)
 
-      self.ema = EMA(self.model, 0.99)
+      self.ema = EMA(self.model, 0.999)
 
       self.ema.register()
       ###control vars
