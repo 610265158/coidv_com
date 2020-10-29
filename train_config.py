@@ -17,7 +17,7 @@ config.TRAIN.num_gpu = 1
 config.TRAIN.batch_size = 128
 config.TRAIN.log_interval = 100                  ##10 iters for a log msg
 config.TRAIN.test_interval = 1
-config.TRAIN.epoch = 150
+config.TRAIN.epoch = 300
 
 config.TRAIN.init_lr=1.e-3
 
