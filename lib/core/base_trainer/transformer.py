@@ -74,7 +74,7 @@ class TransformerNet(nn.Module):
         self.dense1 = nn.Sequential(nn.Linear(num_features, hidden_size, bias=False),
                                     nn.BatchNorm1d(hidden_size, momentum=BN_MOMENTUM, eps=BN_EPS),
                                     ACT_FUNCTION(),
-                                    nn.Dropout(0.3),
+                                    nn.Dropout(0.5),
                                     )
 
 
@@ -89,10 +89,8 @@ class TransformerNet(nn.Module):
 
         self.dense5 = nn.Linear(hidden_size * 3, num_extra_targets)
 
-        self.trans=nn.Sequential(nn.TransformerEncoderLayer(512,8),
-                                 nn.TransformerEncoderLayer(512, 8),
-                                 nn.TransformerEncoderLayer(512, 8),
-                                 nn.TransformerEncoderLayer(512, 8))
+        self.trans=nn.Sequential(nn.TransformerEncoderLayer(512, 32,dropout=0.3),
+                                 nn.TransformerEncoderLayer(512, 32,dropout=0.3))
 
     def forward(self, x):
 

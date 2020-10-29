@@ -26,6 +26,7 @@ from sklearn.feature_selection import VarianceThreshold
 from lib.core.base_trainer.model import Complexer
 from lib.core.base_trainer.densenet import Denseplexer
 from lib.core.base_trainer.table import Tablenet
+from lib.core.base_trainer.transformer import TransformerNet
 def main():
 
 
@@ -56,7 +57,8 @@ def main():
 
     model_dicts=[{'name':'resnetlike','func':Complexer},
                  {'name':'densenetlike','func':Denseplexer},
-                 {'name':'tablenet','func':Tablenet}]
+                 {'name':'tablenet','func':Tablenet},
+                 {'name':'transformer','func':TransformerNet}]
 
 
     #### 5 fols split
