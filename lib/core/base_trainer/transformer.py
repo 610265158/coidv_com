@@ -21,7 +21,7 @@ class MemoryEfficientSwish(nn.Module):
         return SwishImplementation.apply(x)
 
 
-BN_MOMENTUM=0.03
+BN_MOMENTUM=0.02
 BN_EPS=1e-5
 ACT_FUNCTION=MemoryEfficientSwish
 
@@ -65,27 +65,17 @@ class ResBlock(nn.Module):
 
 
 
-class Complexer(nn.Module):
+class TransformerNet(nn.Module):
 
     def __init__(self, num_features=875, num_targets=206,num_extra_targets=402, hidden_size=512):
-        super(Complexer, self).__init__()
+        super(TransformerNet, self).__init__()
 
-
-
-        self.dense1 =nn.Sequential(nn.Linear(num_features, hidden_size,bias=False),
-                                   nn.BatchNorm1d(hidden_size,momentum=BN_MOMENTUM,eps=BN_EPS),
-                                   ACT_FUNCTION(),
-                                   nn.Dropout(0.5),
-                                   )
-
-        self.dense2 =nn.Sequential(ResBlock(hidden_size,hidden_size),
-                                   nn.Dropout(0.5),
-                                   nn.Linear(hidden_size, hidden_size, bias=False),
-                                   nn.BatchNorm1d(hidden_size, momentum=BN_MOMENTUM, eps=BN_EPS),
-                                   ACT_FUNCTION(),
-                                   nn.Dropout(0.5),
-                                   ResBlock(hidden_size, hidden_size),
-                                   )
+        self.bn_init = nn.BatchNorm1d(num_features, momentum=0.01, eps=BN_EPS)
+        self.dense1 = nn.Sequential(nn.Linear(num_features, hidden_size, bias=False),
+                                    nn.BatchNorm1d(hidden_size, momentum=BN_MOMENTUM, eps=BN_EPS),
+                                    ACT_FUNCTION(),
+                                    nn.Dropout(0.3),
+                                    )
 
 
         self.max_p = nn.MaxPool1d(kernel_size=3,stride=1,padding=1)
@@ -100,16 +90,17 @@ class Complexer(nn.Module):
         self.dense5 = nn.Linear(hidden_size * 3, num_extra_targets)
 
         self.trans=nn.Sequential(nn.TransformerEncoderLayer(512,8),
-                                 nn.TransformerEncoderLayer(512, 8),)
+                                 nn.TransformerEncoderLayer(512, 8),
+                                 nn.TransformerEncoderLayer(512, 8),
+                                 nn.TransformerEncoderLayer(512, 8))
 
     def forward(self, x):
 
+        x = self.bn_init(x)
         x = self.dense1(x)
         x = x.unsqueeze(1)
         x = self.trans(x)
         x= x.squeeze(1)
-        x = self.dense2(x)
-
 
         x = self.att(x)
         x = self.dense3(x)
