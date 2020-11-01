@@ -9,10 +9,10 @@ class ResBlock(nn.Module):
     def __init__(self, input_dim=512, output_dim=512):
         super(ResBlock, self).__init__()
 
-        self.att=nn.Sequential(nn.Linear(input_dim, output_dim//4,bias=False),
-                               nn.BatchNorm1d(output_dim//4,momentum=BN_MOMENTUM,eps=BN_EPS),
+        self.att=nn.Sequential(nn.Linear(input_dim, output_dim,bias=False),
+                               nn.BatchNorm1d(output_dim,momentum=BN_MOMENTUM,eps=BN_EPS),
                                ACT_FUNCTION(),
-                               nn.Linear(output_dim//4, output_dim, bias=False),
+                               nn.Linear(output_dim, output_dim, bias=False),
                                nn.BatchNorm1d(output_dim, momentum=BN_MOMENTUM,eps=BN_EPS),
                                )
         self.act=ACT_FUNCTION()
