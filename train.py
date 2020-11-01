@@ -55,10 +55,11 @@ def main():
 
     n_fold=len(folds)
 
-    model_dicts=[{'name':'resnetlike','func':Complexer},
-                 {'name':'densenetlike','func':Denseplexer},
+    model_dicts=[#{'name':'resnetlike','func':Complexer},
+                 #{'name':'densenetlike','func':Denseplexer},
                  {'name':'tablenet','func':Tablenet},
                  ]
+
 
 
     #### 5 fols split
@@ -71,7 +72,8 @@ def main():
 
     for model_dict in model_dicts:
         # for cur_seed in seeds:
-
+        if model_dict['name']=='tablenet':
+            cfg.TRAIN.init_lr = 1e-2
         if 1:
 
             seed_choose_index=0

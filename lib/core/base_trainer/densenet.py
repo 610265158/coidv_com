@@ -2,46 +2,8 @@
 import torch
 import torch.nn as nn
 
-# A memory-efficient implementation of Swish function
-class SwishImplementation(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, i):
-        result = i * torch.sigmoid(i)
-        ctx.save_for_backward(i)
-        return result
 
-    @staticmethod
-    def backward(ctx, grad_output):
-        i = ctx.saved_variables[0]
-        sigmoid_i = torch.sigmoid(i)
-        return grad_output * (sigmoid_i * (1 + i * (1 - sigmoid_i)))
-
-class MemoryEfficientSwish(nn.Module):
-    def forward(self, x):
-        return SwishImplementation.apply(x)
-
-
-BN_MOMENTUM=0.03
-BN_EPS=1e-5
-ACT_FUNCTION=MemoryEfficientSwish
-
-
-class Attention(nn.Module):
-
-    def __init__(self, input_dim=512, output_dim=512):
-        super(Attention, self).__init__()
-
-        self.att=nn.Sequential(nn.Linear(input_dim, output_dim//4,bias=False),
-                               nn.BatchNorm1d(output_dim//4,momentum=BN_MOMENTUM,eps=BN_EPS),
-                               ACT_FUNCTION(),
-                               nn.Linear(output_dim//4, output_dim, bias=False),
-                               nn.BatchNorm1d(output_dim, momentum=BN_MOMENTUM,eps=BN_EPS),
-                               nn.Sigmoid())
-
-    def forward(self, x):
-        xx = self.att(x)
-
-        return x*xx
+from lib.core.base_trainer.model_utils import BN_EPS,BN_MOMENTUM,ACT_FUNCTION,Attention
 
 
 
@@ -50,10 +12,10 @@ class DenseBlock(nn.Module):
     def __init__(self, input_dim=512, output_dim=512):
         super(DenseBlock, self).__init__()
 
-        self.att=nn.Sequential(nn.Linear(input_dim, output_dim//4,bias=False),
-                               nn.BatchNorm1d(output_dim//4,momentum=BN_MOMENTUM,eps=BN_EPS),
+        self.att=nn.Sequential(nn.Linear(input_dim, output_dim,bias=False),
+                               nn.BatchNorm1d(output_dim,momentum=BN_MOMENTUM,eps=BN_EPS),
                                ACT_FUNCTION(),
-                               nn.Linear(output_dim//4, output_dim, bias=False),
+                               nn.Linear(output_dim, output_dim, bias=False),
                                nn.BatchNorm1d(output_dim, momentum=BN_MOMENTUM,eps=BN_EPS),
                                ACT_FUNCTION()
                                )
@@ -66,10 +28,12 @@ class DenseBlock(nn.Module):
 
 class Denseplexer(nn.Module):
 
-    def __init__(self, num_features=875, num_targets=206,num_extra_targets=402, hidden_size=1024):
+    def __init__(self, num_features=875, num_targets=206,num_extra_targets=402, hidden_size=512):
         super(Denseplexer, self).__init__()
 
-        self.bn_init = nn.BatchNorm1d(num_features, momentum=0.01, eps=BN_EPS)
+        self.bn_init = nn.BatchNorm1d(num_features, momentum=BN_MOMENTUM, eps=BN_EPS)
+
+        self.drop_1 = nn.Dropout(0.3)
         self.dense1 =nn.Sequential(nn.Linear(num_features, hidden_size,bias=False),
                                    nn.BatchNorm1d(hidden_size,momentum=BN_MOMENTUM,eps=BN_EPS),
                                    ACT_FUNCTION(),
@@ -92,7 +56,9 @@ class Denseplexer(nn.Module):
         self.mean_p = nn.AvgPool1d(kernel_size=3, stride=1, padding=1)
         self.att = Attention(hidden_size,hidden_size)
 
-        self.dense3 = nn.Linear(hidden_size, hidden_size)
+        self.dense3 = nn.Sequential(nn.Linear(hidden_size, hidden_size),
+                                    nn.BatchNorm1d(hidden_size, momentum=BN_MOMENTUM, eps=BN_EPS),
+                                    ACT_FUNCTION())
 
         self.dense4 = nn.Linear(hidden_size*3, num_targets)
 
@@ -101,6 +67,7 @@ class Denseplexer(nn.Module):
 
 
         x = self.bn_init(x)
+        x = self.drop_1(x)
 
         x = self.dense1(x)
         x = self.dense2(x)

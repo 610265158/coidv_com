@@ -137,14 +137,19 @@ class TabNetNoEmbeddings(torch.nn.Module):
             self.final_mapping = Linear(n_d, output_dim, bias=False)
             initialize_non_glu(self.final_mapping, n_d, output_dim)
 
+        self.dropout1 = nn.Dropout(0.3)
+        self.dropout2 = nn.Dropout(0.5)
+
+
     def forward(self, x):
         res = 0
         x = self.initial_bn(x)
+        x = self.dropout1(x)
 
         prior = torch.ones(x.shape).to(x.device)
         M_loss = 0
         att = self.initial_splitter(x)[:, self.n_d:]
-
+        att=self.dropout2(att)
         for step in range(self.n_steps):
             M = self.att_transformers[step](prior, att)
             M_loss += torch.mean(torch.sum(torch.mul(M, torch.log(M+self.epsilon)),
@@ -813,48 +818,7 @@ class Entmax15(nn.Module):
 #         return sparsemax(input, self.dim)
 
 
-
-# A memory-efficient implementation of Swish function
-class SwishImplementation(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, i):
-        result = i * torch.sigmoid(i)
-        ctx.save_for_backward(i)
-        return result
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        i = ctx.saved_variables[0]
-        sigmoid_i = torch.sigmoid(i)
-        return grad_output * (sigmoid_i * (1 + i * (1 - sigmoid_i)))
-
-class MemoryEfficientSwish(nn.Module):
-    def forward(self, x):
-        return SwishImplementation.apply(x)
-
-
-BN_MOMENTUM=0.03
-BN_EPS=1e-5
-ACT_FUNCTION=MemoryEfficientSwish
-
-
-class Attention(nn.Module):
-
-    def __init__(self, input_dim=512, output_dim=512):
-        super(Attention, self).__init__()
-
-        self.att=nn.Sequential(nn.Linear(input_dim, output_dim//4,bias=False),
-                               nn.BatchNorm1d(output_dim//4,momentum=BN_MOMENTUM,eps=BN_EPS),
-                               ACT_FUNCTION(),
-                               nn.Linear(output_dim//4, output_dim, bias=False),
-                               nn.BatchNorm1d(output_dim, momentum=BN_MOMENTUM,eps=BN_EPS),
-                               nn.Sigmoid())
-
-    def forward(self, x):
-        xx = self.att(x)
-
-        return x*xx
-
+from lib.core.base_trainer.model_utils import BN_EPS,BN_MOMENTUM,ACT_FUNCTION,Attention
 
 class Tableplexe(nn.Module):
 
@@ -867,7 +831,7 @@ class Tableplexe(nn.Module):
         self.gamma: float = 1.3
         self.cat_idxs: []=[]
         self.cat_dims: []=[]
-        self.cat_emb_dim: int = 1
+        self.cat_emb_dim: int = gi
         self.n_independent: int = 2
         self.n_shared: int = 2
         self.epsilon: float = 1e-15
@@ -877,7 +841,7 @@ class Tableplexe(nn.Module):
         self.clip_value: int = 1
         self.verbose: int = 1
 
-        self.mask_type: str = "sparsemax"
+        self.mask_type: str = "entmax"
         self.input_dim: int = 875
         self.output_dim: int = 512
         self.device_name: str = "auto"
@@ -923,8 +887,10 @@ class Tablenet(nn.Module):
         self.mean_p = nn.AvgPool1d(kernel_size=3, stride=1, padding=1)
         self.att=Attention(hidden_size,hidden_size)
 
+        self.dense3 = nn.Sequential(nn.Linear(hidden_size, hidden_size),
+                                    nn.BatchNorm1d(hidden_size, momentum=BN_MOMENTUM, eps=BN_EPS),
+                                    ACT_FUNCTION())
 
-        self.dense3 = nn.Linear(hidden_size, hidden_size)
 
         self.dense4 = nn.Linear(hidden_size*3, num_targets)
 
