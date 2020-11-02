@@ -33,7 +33,7 @@ class Denseplexer(nn.Module):
 
         self.bn_init = nn.BatchNorm1d(num_features, momentum=BN_MOMENTUM, eps=BN_EPS)
 
-        self.drop_1 = nn.Dropout(0.3)
+
         self.dense1 =nn.Sequential(nn.Linear(num_features, hidden_size,bias=False),
                                    nn.BatchNorm1d(hidden_size,momentum=BN_MOMENTUM,eps=BN_EPS),
                                    ACT_FUNCTION(),
@@ -67,7 +67,6 @@ class Denseplexer(nn.Module):
 
 
         x = self.bn_init(x)
-        x = self.drop_1(x)
 
         x = self.dense1(x)
         x = self.dense2(x)

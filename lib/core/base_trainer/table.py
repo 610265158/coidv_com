@@ -137,19 +137,16 @@ class TabNetNoEmbeddings(torch.nn.Module):
             self.final_mapping = Linear(n_d, output_dim, bias=False)
             initialize_non_glu(self.final_mapping, n_d, output_dim)
 
-        self.dropout1 = nn.Dropout(0.3)
-        self.dropout2 = nn.Dropout(0.5)
 
 
     def forward(self, x):
         res = 0
         x = self.initial_bn(x)
-        x = self.dropout1(x)
 
         prior = torch.ones(x.shape).to(x.device)
         M_loss = 0
         att = self.initial_splitter(x)[:, self.n_d:]
-        att=self.dropout2(att)
+
         for step in range(self.n_steps):
             M = self.att_transformers[step](prior, att)
             M_loss += torch.mean(torch.sum(torch.mul(M, torch.log(M+self.epsilon)),
