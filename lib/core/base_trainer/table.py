@@ -831,7 +831,7 @@ class Tableplexe(nn.Module):
         self.gamma: float = 1.3
         self.cat_idxs: []=[]
         self.cat_dims: []=[]
-        self.cat_emb_dim: int = gi
+        self.cat_emb_dim: int = 1
         self.n_independent: int = 2
         self.n_shared: int = 2
         self.epsilon: float = 1e-15
