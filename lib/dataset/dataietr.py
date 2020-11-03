@@ -252,7 +252,7 @@ class AlaskaDataIter():
 
         mask=mask>rate
 
-        jitter=np.random.uniform(-1,1,size=x.shape[0])*mask*2
+        jitter=np.random.uniform(-1,1,size=x.shape[0])*mask*3
 
         return x+jitter
     def cutout(self,x, rate=0.2):
