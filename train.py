@@ -1,6 +1,7 @@
 import torch
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 from sklearn.cluster import KMeans
+from sklearn.preprocessing import QuantileTransformer
 from torch import nn
 
 from lib.core.base_trainer.net_work import Train
@@ -38,20 +39,41 @@ def main():
     labels = pd.read_csv(target_file)
     extra_labels = pd.read_csv(noscore_target)
 
-    test_features = pd.read_csv('../lish-moa/test_features.csv')
+    pub_test_features = pd.read_csv('../lish-moa/test_features.csv')
 
 
 
     ####
 
+    # ####
+    GENES = [col for col in train_features.columns if col.startswith('g-')]
+    CELLS = [col for col in train_features.columns if col.startswith('c-')]
+    ####
+
+    # RankGauss - transform to Gauss
+
+    for col in (GENES + CELLS):
+        transformer = QuantileTransformer(n_quantiles=100, random_state=0, output_distribution="normal")
+        vec_len = len(train_features[col].values)
+        vec_len_pub_test = len(pub_test_features[col].values)
+        vec_len_test=len(pub_test_features[col].values)
+
+        data = np.concatenate([train_features[col].values.reshape(vec_len, 1),
+                               pub_test_features[col].values.reshape(vec_len_pub_test, 1)], axis=0)
+
+        transformer.fit(data)
+
+        train_features[col] = \
+            transformer.transform(train_features[col].values.reshape(vec_len, 1)).reshape(1, vec_len)[0]
 
 
-
+        pub_test_features[col] = \
+            transformer.transform(pub_test_features[col].values.reshape(vec_len_test, 1)).reshape(1, vec_len_test)[0]
 
     print(train_features.shape)
     losscolector=[]
-    folds=[0,1,2,3,4,5,6,7,8,9]
-    seeds=[40,41,42,43,44,45,46,47,48,49,50]
+    folds=[0,1,2,3,4,5,6]
+    seeds=[40,41,42,43,44]
 
     n_fold=len(folds)
 
@@ -61,24 +83,23 @@ def main():
                  ]
 
 
-    #### 5 fols split
-    features = train_features.copy()
-    target_cols = [c for c in labels.columns if c not in ['sig_id']]
-    features['fold'] = -1
-    Fold = MultilabelStratifiedKFold(n_splits=n_fold, shuffle=True, random_state=10086)
-    for fold, (train_index, test_index) in enumerate(Fold.split(features, labels[target_cols])):
-        features['fold'][test_index] = fold
 
     for model_dict in model_dicts:
         # for cur_seed in seeds:
 
-        if 1:
+        for cur_seed in seeds:
 
-            seed_choose_index=0
+            #### 5 fols split
+            features = train_features.copy()
+            target_cols = [c for c in labels.columns if c not in ['sig_id']]
+            features['fold'] = -1
+            Fold = MultilabelStratifiedKFold(n_splits=n_fold, shuffle=True, random_state=cur_seed)
+            for fold, (train_index, test_index) in enumerate(Fold.split(features, labels[target_cols])):
+                features['fold'][test_index] = fold
+
+
             for fold in folds:
-                
-                cur_seed = seeds[seed_choose_index]
-                seed_choose_index+=1
+
                 seed_everything(cur_seed)
                 logger.info('train with seed %d' % (cur_seed))
 
