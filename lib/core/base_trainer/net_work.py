@@ -98,8 +98,8 @@ class Train(object):
 
 
 
-    self.train_criterion=BCEWithLogitsLoss(smooth_eps=0.001).to(self.device)
-    self.criterion = nn.BCEWithLogitsLoss().to(self.device)
+    self.criterion=BCEWithLogitsLoss(smooth_eps=0.001).to(self.device)
+
 
 
 
@@ -156,8 +156,8 @@ class Train(object):
                                                                   min_lr=1e-6, verbose=True)
       # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR( self.optimizer, self.epochs,eta_min=1.e-6)
 
-      self.train_criterion = BCEWithLogitsLoss(smooth_eps=0.001).to(self.device)
-      self.criterion = nn.BCEWithLogitsLoss().to(self.device)
+      self.criterion = BCEWithLogitsLoss(smooth_eps=0.001).to(self.device)
+
 
 
 
@@ -206,8 +206,8 @@ class Train(object):
         batch_size = feature.shape[0]
 
         output,output2 = self.model(feature)
-        loss1=self.train_criterion(output,target1)
-        loss2 = self.train_criterion(output2, target2)
+        loss1=self.criterion(output,target1)
+        loss2 = self.criterion(output2, target2)
         loss=loss1+loss2
         summary_loss.update(loss.detach().item(), batch_size)
 
@@ -263,7 +263,7 @@ class Train(object):
                 batch_size = feature.shape[0]
 
                 output,_ = self.model(feature)
-                loss = self.criterion(output, target1)
+                loss = self.criterion(output, target1,training=False,features=feature)
                 summary_loss.update(loss.detach().item(), batch_size)
 
                 if step % cfg.TRAIN.log_interval == 0:
